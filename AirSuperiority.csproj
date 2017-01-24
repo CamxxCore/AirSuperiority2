@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{031BFAAE-37BC-4B8E-9F7D-47AD4BC40C5D}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AirSuperiority</RootNamespace>
+    <AssemblyName>AirSuperiority</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>bin\x64\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ScriptHookVDotNet">
+      <HintPath>..\..\..\..\..\Desktop\Files\ScriptHookVDotNet.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ScriptBase\Constants.cs" />
+    <Compile Include="Core\Game\IScriptExtension.cs" />
+    <Compile Include="Core\IO\IXMLSimpleMetadata.cs" />
+    <Compile Include="Core\Logger.cs" />
+    <Compile Include="Core\IO\XMLAttributesCollection.cs" />
+    <Compile Include="Core\IO\XMLSimpleParser.cs" />
+    <Compile Include="Core\Game\ScriptExtension.cs" />
+    <Compile Include="Core\Game\ScriptExtensionPool.cs" />
+    <Compile Include="Core\Game\ScriptEntityExtension.cs" />
+    <Compile Include="Core\Game\ScriptComponent.cs" />
+    <Compile Include="Core\Game\IScriptComponent.cs" />
+    <Compile Include="Core\Game\ScriptPed.cs" />
+    <Compile Include="Core\Game\ScriptPlane.cs" />
+    <Compile Include="Core\Game\ScriptEntityExtensionPool.cs" />
+    <Compile Include="Core\Game\IScriptEntity.cs" />
+    <Compile Include="Core\Game\IScriptEntityExtension.cs" />
+    <Compile Include="Core\Game\ScriptEntity.cs" />
+    <Compile Include="Core\Game\ScriptThread.cs" />
+    <Compile Include="Core\IO\XMLSimpleMetadata.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Core\Game\ScriptEntityEventArgs.cs" />
+    <Compile Include="ScriptBase\Entities\ManagedFighter.cs" />
+    <Compile Include="ScriptBase\Entities\ManagedPed.cs" />
+    <Compile Include="ScriptBase\Extensions\AIHandler.cs" />
+    <Compile Include="ScriptBase\Extensions\EngineExtinguisher.cs" />
+    <Compile Include="ScriptBase\Extensions\SpawnBooster.cs" />
+    <Compile Include="ScriptBase\Extensions\SpawnCamera.cs" />
+    <Compile Include="ScriptBase\Extensions\IRFlareManager.cs" />
+    <Compile Include="ScriptBase\Entities\PlayerParticipant.cs" />
+    <Compile Include="ScriptBase\Helpers\Gamepad\GamepadInterface.cs" />
+    <Compile Include="ScriptBase\Helpers\ManagedScaleform.cs" />
+    <Compile Include="ScriptBase\Helpers\Scaleform\Leaderboard.cs" />
+    <Compile Include="ScriptBase\Helpers\TeamScoreboard.cs" />
+    <Compile Include="ScriptBase\Helpers\Extensions.cs" />
+    <Compile Include="ScriptBase\Helpers\GameSound.cs" />
+    <Compile Include="ScriptBase\Helpers\Utility.cs" />
+    <Compile Include="ScriptBase\Logic\LevelManager.cs" />
+    <Compile Include="ScriptBase\Logic\SessionManager.cs" />
+    <Compile Include="ScriptBase\Helpers\Gamepad\Events\AnalogStickChangedEventArgs.cs" />
+    <Compile Include="ScriptBase\Helpers\Gamepad\Events\ButtonPressedEventArgs.cs" />
+    <Compile Include="ScriptBase\Logic\InputManager.cs" />
+    <Compile Include="ScriptBase\Helpers\Gamepad\Events\TriggerChangedEventArgs.cs" />
+    <Compile Include="ScriptBase\Helpers\LoopedParticle.cs" />
+    <Compile Include="ScriptBase\Resources.cs" />
+    <Compile Include="ScriptBase\Main.cs" />
+    <Compile Include="ScriptBase\Types.cs" />
+    <Compile Include="ScriptBase\Types\Level\LevelBounds.cs" />
+    <Compile Include="ScriptBase\Types\Level\LevelInfo.cs" />
+    <Compile Include="ScriptBase\Types\Level\LevelSpawn.cs" />
+    <Compile Include="ScriptBase\Types\Metadata\MapAreaAssetMetadata.cs" />
+    <Compile Include="ScriptBase\Types\Metadata\SoundAssetMetadata.cs" />
+    <Compile Include="ScriptBase\Types\Metadata\SpawnPointAssetMetadata.cs" />
+    <Compile Include="ScriptBase\Types\Metadata\TeamAssetMetadata.cs" />
+    <Compile Include="ScriptBase\Types\Player\PlayerStats.cs" />
+    <Compile Include="ScriptBase\Types\Player\PlayerInfo.cs" />
+    <Compile Include="ScriptBase\Logic\DisplayManager.cs" />
+    <Compile Include="ScriptBase\Helpers\GlobalScaleform.cs" />
+    <Compile Include="ScriptBase\Helpers\Scaleform\RankBar.cs" />
+    <Compile Include="ScriptBase\Types\Player\PlayerState.cs" />
+    <Compile Include="ScriptBase\Types\Session\SessionInfo.cs" />
+    <Compile Include="ScriptBase\Types\Team\TeamInfo.cs" />
+    <Compile Include="ScriptBase\Types\Team\TeamColor.cs" />
+    <Compile Include="ScriptBase\Types\Team\TeamStatus.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy "$(TargetPath)" "C:\Program Files\Rockstar Games\Grand Theft Auto V\scripts\$(ProjectName).dll"</PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
