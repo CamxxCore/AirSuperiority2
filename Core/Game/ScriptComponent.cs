@@ -43,7 +43,7 @@ namespace AirSuperiority.Core
             return Guid.GetHashCode();
         }
 
-        public virtual void OnUpdate()
+        public virtual void OnUpdate(int gameTime)
         { }
     }
 }

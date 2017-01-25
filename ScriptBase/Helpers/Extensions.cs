@@ -29,16 +29,28 @@ namespace AirSuperiority.ScriptBase.Helpers
             return new Vector3(arr.ElementAt(0), arr.ElementAt(1), arr.ElementAt(2));
         }
 
-        public static bool InsidePolygon(this Vector3 point, LevelBounds vertices)
+        /// <summary>
+        /// Checks whether the point is within the given level bounds.
+        /// </summary>
+        /// <param name="point"></param>
+        /// <param name="vertices"></param>
+        /// <returns></returns>
+        public static bool BoundsCheck(this Vector3 point, LevelBounds vertices)
         {
-            int j = 4;
+            int j = 3;
             bool c = false;
-           for (int i = 0; i < 4; j = i++)
+           for (int i = 0; i < 3; j = i++)
                 c ^= vertices[i].Y > point.Y ^ vertices[j].Y > point.Y && point.X < (vertices[j].X - vertices[i].X) * (point.Y - vertices[i].Y) / (vertices[j].Y - vertices[i].Y) + vertices[i].X;
             return c;
         }
 
-        public static bool InsidePolygon(this Vector3 point, Vector3[] vertices)
+        /// <summary>
+        /// Checks whether the point is within the bounds of the given verticies.
+        /// </summary>
+        /// <param name="point"></param>
+        /// <param name="vertices"></param>
+        /// <returns></returns>
+        public static bool BoundsCheck(this Vector3 point, Vector3[] vertices)
         {
             int j = vertices.Length - 1;
             bool c = false;

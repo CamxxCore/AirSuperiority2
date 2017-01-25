@@ -6,9 +6,8 @@ using AirSuperiority.ScriptBase.Types;
 using AirSuperiority.ScriptBase.Types.Metadata;
 using AirSuperiority.ScriptBase.Helpers;
 using AirSuperiority.ScriptBase.Entities;
+using AirSuperiority.ScriptBase.Extensions;
 using GTA;
-using GTA.Native;
-using GTA.Math;
 
 namespace AirSuperiority.ScriptBase.Logic
 {
@@ -25,6 +24,20 @@ namespace AirSuperiority.ScriptBase.Logic
 
         private LevelSpawn[] activeSpawns;
 
+        /// <summary>
+        /// Instance of the active session.
+        /// </summary>
+        public SessionInfo Current
+        {
+            get
+            {
+                return current;
+            }
+        }
+
+        /// <summary>
+        /// If the session is currently active.
+        /// </summary>
         public bool SessionActive
         {
             get
@@ -52,9 +65,9 @@ namespace AirSuperiority.ScriptBase.Logic
         /// <summary>
         /// Randomize active team data.
         /// </summary>
-        private void GetNewTeams()
+        private void GetNewTeams(int teamsCount)
         {
-            var teamData = Resources.GetByName<TeamAssetMetadata>("TeamInfo");
+            var metadata = Resources.GetByName<TeamAssetMetadata>("TeamInfo");
 
             var frontend = BaseThread.GetExtension("ui") as DisplayManager;
 
@@ -62,11 +75,17 @@ namespace AirSuperiority.ScriptBase.Logic
 
             Array.Clear(activeTeams, 0, activeTeams.Length);
 
-            for (int i = 0; i < Constants.MaxConcurrentTeams; i++)
+            activeTeams = new TeamInfo[teamsCount];
+
+            for (int i = 0; i < activeTeams.Length; i++)
             {
-                var foundTeam = teamData.Where(x => !prev.Any(z => z?.FriendlyName == x.FriendlyName)).GetRandomItem();
+                var foundTeam = metadata.Where(m => 
+                !prev.Any(z => z?.FriendlyName == m.FriendlyName) && 
+                !activeTeams.Any(y => y?.FriendlyName == m.FriendlyName)).GetRandomItem();
 
                 var team = new TeamInfo(i, foundTeam.FriendlyName, (TeamColor)i, GetTeamSpawn(i), new TeamStatus());
+
+               // World.CreateBlip(team.SpawnPoint.Position);
 
                 frontend.SetTeamSlotFromMetadata(i, foundTeam);
 
@@ -90,15 +109,15 @@ namespace AirSuperiority.ScriptBase.Logic
         }
 
         /// <summary>
-        /// Intitialize a new session with the given level and number of players.
+        /// Intitialize a new session with the given level number of players and teams.
         /// </summary>
         /// <param name="levelIndex"></param>
         /// <param name="numPlayers"></param>
-        public void Initialize(int levelIndex, int numPlayers)
+        public void Initialize(int levelIndex, int numPlayers, int numTeams)
         {
-            SetupSpawnsForMapIndex(levelIndex);
+            SetupSpawnsForMapIndex(levelIndex, numTeams);
 
-            GetNewTeams();
+            GetNewTeams(numTeams);
 
             current = new SessionInfo();
 
@@ -126,18 +145,18 @@ namespace AirSuperiority.ScriptBase.Logic
         /// Grab level spawns for the given map index.
         /// </summary>
         /// <param name="mapIndex"></param>
-        private void SetupSpawnsForMapIndex(int mapIndex)
+        private void SetupSpawnsForMapIndex(int mapIndex, int numTeams)
         {
-            var spawnMetadata = Resources.GetByName<SpawnPointAssetMetadata>("SpawnPoint");
-            
-            spawnMetadata = spawnMetadata.Where(x => x.MapIndex == mapIndex);
+            var metadata = Resources.GetByName<SpawnPointAssetMetadata>("SpawnPoint");
 
-            if (spawnMetadata.Count() < Constants.MaxConcurrentTeams)
+            metadata = metadata.Where(m => m.MapIndex == mapIndex);
+
+            if (metadata.Count() < numTeams)
             {
-                throw new InvalidOperationException("SetupMapSpawns - Not enough spawn points defined for map index '" + mapIndex + "'!");
+                throw new InvalidOperationException("SetupMapSpawns - Not enough spawn points defined in metadata for map index '" + mapIndex + "'! Found " + metadata.Count() + " entries.");
             }
 
-            activeSpawns = spawnMetadata.Select(x => new LevelSpawn(x.Position, x.Heading)).ToArray();
+            activeSpawns = metadata.Select(m => new LevelSpawn(m.Position, m.Heading)).ToArray();
         }
 
         /// <summary>
@@ -153,135 +172,65 @@ namespace AirSuperiority.ScriptBase.Logic
         }
 
         /// <summary>
-        /// Create a new participant for the script.
+        /// Instantiate a participant for the session at the given slot.
         /// </summary>
+        /// <param name="slotIndex"></param>
         /// <param name="teamIndex"></param>
-        /// <param name="isLocal"></param>
+        /// <param name="bIsLocal"></param>
         /// <returns></returns>
-        private PlayerParticipant CreateParticipant(int teamIndex, bool isLocal)
+        private GameParticipant CreateParticipant(int slotIndex, int teamIndex, bool bIsLocal)
         {
-            // todo: cleanup and implement this function elsewhere.
+            GameParticipant participant;
 
-            LevelSpawn spawnPoint = activeTeams[teamIndex].SpawnPoint;
-
-            Vector3 position = Utility.EnsureValidSpawnPos(spawnPoint.Position);
-
-            Model model = new Model(isLocal ? VehicleHash.Lazer : new VehicleHash[] {
-                VehicleHash.Lazer,
-                VehicleHash.Besra,
-                VehicleHash.Hydra }.GetRandomItem());
-
-            if (!model.IsLoaded)
-                model.Request(1000);
-
-            var vehicle = new ManagedFighter(World.CreateVehicle(model, position, spawnPoint.Heading));
-
-            vehicle.Ref.LodDistance = 2000;
-            vehicle.Ref.EngineRunning = true;
-            vehicle.Ref.BodyHealth = 0.01f;
-            vehicle.Ref.MaxHealth = 1;
-
-            vehicle.LandingGearState = LandingGearState.Retracted;
-
-            Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, vehicle.Ref, true);
-
-            ManagedPed ped;
-
-            if (!isLocal)
+            if (bIsLocal)
             {
-                model = new Model(PedHash.Pilot02SMM);
-
-                if (!model.IsLoaded)
-                    model.Request(1000);
-
-                ped = new ManagedPed(World.CreatePed(model, position));
-
-                ped.Ref.RelationshipGroup = rGroups[teamIndex];
-
-                Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped.Ref, 1, 1);
-
-                Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped.Ref, 52, 0);
-
-                Function.Call(Hash.SET_PED_CAN_SWITCH_WEAPON, ped.Ref, false);
+                participant = new LocalParticipant(Game.Player.Name, teamIndex);
+                participant.CreateEntity(activeTeams[teamIndex].SpawnPoint);
+                participant.Vehicle.AddExtension(new VehicleLandingGearManager());
+                participant.Vehicle.AddExtension(new VehicleSpawnVelocityBooster());
+                participant.Vehicle.AddExtension(new VehicleSpawnLerpingCamera());
             }
 
             else
             {
-                ped = new ManagedPed(Game.Player.Character);
-
-                ped.Ref.RelationshipGroup = rGroups[teamIndex];        
+                participant = new GameParticipant(string.Format("aiplayer{0}", slotIndex), teamIndex);
+                participant.CreateEntity(activeTeams[teamIndex].SpawnPoint);
+                participant.Vehicle.AddExtension(new VehicleLandingGearManager());
             }
 
-            ped.Ref.SetIntoVehicle(vehicle.Ref, VehicleSeat.Driver);
+            participant.OnDead += (s, e) => s.CreateEntity(activeTeams[s.Info.Sess.TeamNum].SpawnPoint);
 
-            return new PlayerParticipant(ped, vehicle);
+            current.Players[slotIndex].EntityRef = participant;
+
+            return participant;
         }
 
-        public override void OnUpdate()
+        /// <summary>
+        /// Update the class.
+        /// </summary>
+        /// <param name="gameTime"></param>
+        public override void OnUpdate(int gameTime)
         {
             if (sessionActive)
             {
                 for (int i = 0; i < current.NumPlayers; i++)
-                {
-                    if (current.Players[i].EntityRef == null)
+                {         
+                    if (ReferenceEquals(current.Players[i].EntityRef, null))
                     {
-                        bool bIsLocal = (i < 1);
-
-                        var participant = CreateParticipant(current.Players[i].TeamIdx, bIsLocal);
-
-                        if (bIsLocal)
-                        {
-                            participant.Vehicle.EnterWater += LocalPedEnterWater;
-
-                            participant.Ped.ExitVehicle += LocalPedExitVehicle;
-                        }
-
-                        current.Players[i].EntityRef = participant;
+                        CreateParticipant(i, current.Players[i].TeamIdx, i < 1);
                     }
 
-                    current.Players[i].EntityRef.OnUpdate();
+                    current.Players[i].Update();
                 }
             }
 
-            base.OnUpdate();
-        }
-
-        private void LocalPedExitVehicle(IScriptEntity sender, ScriptEntityEventArgs args)
-        {
-            // todo: cleanup and implement this function elsewhere.
-
-            UI.ShowSubtitle("exit");
-
-            current.Players[0].EntityRef.Remove();
-
-            var participant = CreateParticipant(current.Players[0].TeamIdx, true);
-
-            participant.Vehicle.EnterWater += LocalPedEnterWater;
-
-            participant.Ped.ExitVehicle += LocalPedExitVehicle;
-
-            current.Players[0].EntityRef = participant;
-        }
-
-        private void LocalPedEnterWater(IScriptEntity sender, ScriptEntityEventArgs args)
-        {
-            // todo: cleanup and implement this function elsewhere.
-
-            UI.ShowSubtitle("water");
-
-            current.Players[0].EntityRef.Remove();
-
-            var participant = CreateParticipant(current.Players[0].TeamIdx, true);
-
-            participant.Vehicle.EnterWater += LocalPedEnterWater;
-
-            participant.Ped.ExitVehicle += LocalPedExitVehicle;
-
-            current.Players[0].EntityRef = participant;
+            base.OnUpdate(gameTime);
         }
 
         public override void Dispose()
         {
+            //  remove relationship groups
+
             rGroups.ForEach(x => World.RemoveRelationshipGroup(x));
 
             base.Dispose();

@@ -1,4 +1,5 @@
 ﻿using GTA;
+using System.Threading;
 
 namespace AirSuperiority.Core
 {
@@ -14,7 +15,7 @@ namespace AirSuperiority.Core
 
         public ScriptThread()
         {
-            Tick += (s,e) => OnUpdate();
+            Tick += (s,e) => OnUpdate(Game.GameTime);
             Extensions = new ScriptExtensionPool();
         }
 
@@ -44,11 +45,11 @@ namespace AirSuperiority.Core
         /// <summary>
         /// Updates the thread.
         /// </summary>
-        public virtual void OnUpdate()
+        public virtual void OnUpdate(int gameTime)
         {
             foreach (var extension in Extensions.Values)
             {
-                extension.OnUpdate();
+                extension.OnUpdate(gameTime);
             }
         }
 

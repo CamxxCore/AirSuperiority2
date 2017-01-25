@@ -9,7 +9,7 @@ namespace AirSuperiority.Core
     public abstract class ScriptEntity<T> : ScriptComponent, IScriptEntity, IDisposable where T : Entity
     {
         /// <summary>
-        /// Base entity reference.
+        /// Base game entity reference.
         /// </summary>
         public T Ref { get; }
 
@@ -141,17 +141,17 @@ namespace AirSuperiority.Core
         /// <summary>
         /// Call this method each tick to update entity related information.
         /// </summary>
-        public override void OnUpdate()
+        public override void OnUpdate(int gameTime)
         {
             foreach (var extension in Extensions)
             {
-                extension.OnUpdate();
+                extension.OnUpdate(gameTime);
             }
 
             if (Ref.IsDead)
             {
                 if (deadTicks == 0)
-                    OnDead(new ScriptEntityEventArgs(this));
+                    OnDead(new ScriptEntityEventArgs(gameTime));
 
                 aliveTicks = 0;
                 deadTicks++;
@@ -162,7 +162,7 @@ namespace AirSuperiority.Core
                 if (Ref.IsInWater)
                 {
                     if (waterTicks == 0)
-                        OnEnterWater(new ScriptEntityEventArgs(this));
+                        OnEnterWater(new ScriptEntityEventArgs(gameTime));
 
                     waterTicks++;
                 }
@@ -170,7 +170,7 @@ namespace AirSuperiority.Core
                     waterTicks = 0;
 
                 if (aliveTicks == 0)
-                    OnAlive(new ScriptEntityEventArgs(this));
+                    OnAlive(new ScriptEntityEventArgs(gameTime));
 
                 deadTicks = 0;
                 aliveTicks++;
@@ -180,7 +180,7 @@ namespace AirSuperiority.Core
 
             totalTicks = totalTicks % int.MaxValue;
 
-            totalTime = TimeSpan.FromMilliseconds(Game.GameTime - createdTime);
+            totalTime = TimeSpan.FromMilliseconds(gameTime - createdTime);
         }
 
         /// <summary>

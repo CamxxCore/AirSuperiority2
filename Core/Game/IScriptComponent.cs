@@ -25,6 +25,6 @@ namespace AirSuperiority.Core
         /// <summary>
         /// Method to be fired each frame.
         /// </summary>
-        void OnUpdate();
+        void OnUpdate(int gameTime);
     }
 }

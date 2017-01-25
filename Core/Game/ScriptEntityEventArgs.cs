@@ -9,14 +9,14 @@ namespace AirSuperiority.Core
     /// </summary>
     public sealed class ScriptEntityEventArgs : EventArgs
     {
-        public ScriptEntityEventArgs(IScriptEntity entity)
+        public ScriptEntityEventArgs(int gameTime)
         {
-            Entity = entity;
+            GameTime = gameTime;
         }
 
         /// <summary>
         /// The entity that fired the event
         /// </summary>
-        public IScriptEntity Entity { get; private set; }
+        public int GameTime { get; private set; }
     }
 }

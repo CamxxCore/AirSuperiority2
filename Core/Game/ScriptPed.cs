@@ -46,12 +46,13 @@ namespace AirSuperiority.Core
             ExitVehicle?.Invoke(this, e);
         }
 
-        public override void OnUpdate()
+        public override void OnUpdate(int gameTime)
         {
+
             if (Ref.IsInVehicle())
             {
                 if (vehicleTicks == 0)
-                    OnEnterVehicle(new ScriptEntityEventArgs(this));
+                    OnEnterVehicle(new ScriptEntityEventArgs(gameTime));
                 vehicleTicks++;
             }
 
@@ -59,12 +60,12 @@ namespace AirSuperiority.Core
             {
                 if (vehicleTicks > 0)
                 {
-                    OnExitVehicle(new ScriptEntityEventArgs(this));
+                    OnExitVehicle(new ScriptEntityEventArgs(gameTime));
                     vehicleTicks = 0;
                 }
             }
 
-            base.OnUpdate();
+            base.OnUpdate(gameTime);
         }
     }
 }

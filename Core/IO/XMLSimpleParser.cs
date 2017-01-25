@@ -18,7 +18,6 @@ namespace AirSuperiority.Core.IO
 
             using (XmlReader reader = XmlReader.Create(fileName))
             {
-
                 while (reader.Read())
                 {
                     if (reader.NodeType == XmlNodeType.Element && reader.Name == dataType)
