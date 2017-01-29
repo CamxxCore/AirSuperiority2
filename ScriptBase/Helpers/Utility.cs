@@ -53,6 +53,21 @@ namespace AirSuperiority.ScriptBase.Helpers
             return panelCenter;
         }
 
+        public static void Teleport(this Player player, Vector3 p, float heading)
+        {
+            Function.Call(Hash.START_PLAYER_TELEPORT, player.Handle, p.X, p.Y, p.Z, heading, 0, 1, 1);
+
+    /*        DateTime timeout = DateTime.Now + TimeSpan.FromMilliseconds(2000);
+
+            while (!Function.Call<bool>((Hash)0xE23D5873C2394C61, player.Handle))
+            {
+                if (DateTime.Now > timeout) break;
+            }
+
+            Function.Call(Hash.STOP_PLAYER_TELEPORT);*/
+        }
+
+
         /// <summary>
         /// Fade out screen
         /// </summary>
@@ -80,9 +95,6 @@ namespace AirSuperiority.ScriptBase.Helpers
         public static void LoadItemPlacement(string iplName)
         {
             Function.Call(Hash.REQUEST_IPL, iplName);
-
-          //  while (!Function.Call<bool>(Hash.IS_IPL_ACTIVE, iplName))
-          //      Script.Wait(0);
         }
 
         /// <summary>
@@ -93,8 +105,6 @@ namespace AirSuperiority.ScriptBase.Helpers
         {
             foreach (string ipl in iplNames)
             {
-                UI.ShowSubtitle("loading " + ipl);
-
                 LoadItemPlacement(ipl);
             }
         }

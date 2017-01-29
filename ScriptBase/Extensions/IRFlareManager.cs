@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AirSuperiority.Core;
 using AirSuperiority.ScriptBase.Helpers;
@@ -6,9 +7,18 @@ using GTA.Math;
 using GTA.Native;
 using GTA;
 using Player = AirSuperiority.ScriptBase.Entities.Player;
+using AirSuperiority.ScriptBase.Entities;
 
 namespace AirSuperiority.ScriptBase.Extensions
 {
+    public enum ForceType
+    {
+        Up,
+        Down,
+        Left,
+        Right
+    }
+
     /// <summary>
     /// An extension that adds IR countermeasures for planes.
     /// </summary>
@@ -17,44 +27,137 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// <summary>
         /// Max time for dropping flares (ms). <b>Default =</b> 5200
         /// </summary>
-        public int MaxDropTime { get; set; } = 3000;
+        public int MaxDropTime { get; set; } = 4200;
+
+        /// <summary>
+        /// Max time for cooldown (ms). <b>Default =</b> 3100
+        /// </summary>
+        public int CooldownTime { get; set; } = 22000;
 
         /// <summary>
         /// Frequency of flare drops (ms). <b>Default =</b> 250
         /// </summary>
-        public int FlareDropInterval { get; set; } = 263;
+        public int FlareDropInterval { get; set; } = 80;
 
+        private Vehicle vehicle;
 
-        private List<IRFlareSequence> activeFlareSequence;
+        private List<IRFlareSequence> sequenceList =
+            new List<IRFlareSequence>();
+
+        private int timeSinceLastDrop = 0;
+
+        private bool bCooldownActive = false;
+
+        private SequenceFlags sqFlags = SequenceFlags.NotRunning;
+
+        /// <summary>
+        /// If any sequence is running.
+        /// </summary>
+        public bool AnySequenceActive
+        {
+            get
+            {
+                return sqFlags.HasFlag(SequenceFlags.Active);
+            }
+        }
 
         public IRFlareManager(ScriptThread thread, Player player) : base(thread, player)
-        { }
-
-        public override void OnPlayerAttached(Player entity)
         {
-            if (activeFlareSequence != null)
+
+        }
+
+        public override void OnPlayerAttached(Player player)
+        {
+            player.OnAlive += Player_OnAlive;
+
+            base.OnPlayerAttached(player);
+        }
+
+        private void Player_OnAlive(Player sender, EventArgs e)
+        {
+            sequenceList.Clear();
+
+            SetupWithVehicle(sender.Vehicle.Ref);
+        }
+
+        /// <summary>
+        /// Initializes the class for the given vehicle.
+        /// </summary>
+        /// <param name="vehicle">Target vehicle</param>
+        /// <returns></returns>
+        public IRFlareManager SetupWithVehicle(Vehicle vehicle)
+        {
+            this.vehicle = vehicle;
+            AddFlareSequence(new Vector3(0.0f, -0.3f, -2f), ForceType.Left, 11f, true);
+            AddFlareSequence(new Vector3(0.0f, -0.3f, -2f), ForceType.Right, 11f, true);
+            AddFlareSequence(new Vector3(0.0f, -0.3f, -2f), ForceType.Left, 7.8f, true);
+            AddFlareSequence(new Vector3(0.0f, -0.3f, -2f), ForceType.Right, 7.8f, true);
+            AddFlareSequence(new Vector3(0.0f, -0.3f, -2f), ForceType.Down, 6f, true);
+            return this;
+        }
+
+        /// <summary>
+        /// Add a new flare sequence with the given parameters
+        /// </summary>
+        /// <param name="dropOffset">The offset from the vehicle where the flares will be dropped.</param>
+        /// <param name="force">The type of directional force to use when ejecting the flares.</param>
+        /// <param name="forceMultiplier">The scale of forces to be used.</param>
+        /// <param name="randomVel">Randomize ejection velocity to simulate drag/ environmental factors</param>
+        private void AddFlareSequence(Vector3 dropOffset, ForceType force, float forceMultiplier, bool randomVel)
+        {
+            Vector3 min, max;
+            vehicle.Model.GetDimensions(out min, out max);
+            IRFlareSequence s = new IRFlareSequence(vehicle, FlareDropInterval, MaxDropTime, new Vector3(dropOffset.X, dropOffset.Y, min.Z), force, forceMultiplier, randomVel);
+            s.OnCompleted += OnFlareSequenceCompleted;
+            sequenceList.Add(s);
+        }
+
+        /// <summary>
+        /// Runs when an active flare sequence has completed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        private void OnFlareSequenceCompleted(object sender, EventArgs args)
+        {
+            for (int i = sequenceList.Count; i > -1; i--)
             {
-                activeFlareSequence.Clear();
-            }
-            else
-            {
-                activeFlareSequence = new List<IRFlareSequence>();
+                SequenceFlags flag = (SequenceFlags)(1 << i);
+
+                if (sqFlags.HasFlag(flag))
+                {
+                    sqFlags &= ~flag;
+
+                    break;
+                }
             }
 
-            activeFlareSequence.Add(new IRFlareSequence(Player.Vehicle.Ref, FlareDropInterval, MaxDropTime, new Vector3(0, 0.6f, -2.0f), IRFlareSequence.ForceType.Left, 15f));
-            activeFlareSequence.Add(new IRFlareSequence(Player.Vehicle.Ref, FlareDropInterval, MaxDropTime, new Vector3(0, -0.6f, -2.0f), IRFlareSequence.ForceType.Right, 15f));
-            activeFlareSequence.Add(new IRFlareSequence(Player.Vehicle.Ref, FlareDropInterval, MaxDropTime, new Vector3(0, 0.4f, -2.0f), IRFlareSequence.ForceType.Left, 9f));
-            activeFlareSequence.Add(new IRFlareSequence(Player.Vehicle.Ref, FlareDropInterval, MaxDropTime, new Vector3(0, -0.4f, -2.0f), IRFlareSequence.ForceType.Right, 9f));
-            activeFlareSequence.Add(new IRFlareSequence(Player.Vehicle.Ref, FlareDropInterval, MaxDropTime, new Vector3(0, 0.0f, -2.0f), IRFlareSequence.ForceType.Down, 2.5f));
-
-            base.OnPlayerAttached(entity);
+            if (!AnySequenceActive)
+            {
+                UI.Notify("IR flares recharging.");
+            }
         }
 
         public override void OnUpdate(int gameTime)
         {
-            if (activeFlareSequence != null)
+            sequenceList.ForEach(x => x.Update());
+
+            if (bCooldownActive && Game.GameTime - timeSinceLastDrop > MaxDropTime + CooldownTime)
             {
-                activeFlareSequence.ForEach(x => x.Update(gameTime));
+                UI.Notify("IR flares available!");
+
+                bCooldownActive = false;
+            }
+
+            if (AnySequenceActive)
+            {
+                var projectileEntities = World.GetNearbyEntities(vehicle.Position - vehicle.ForwardVector * 55, 53.0f)
+                    .Where(x => (uint)x.Model.Hash == 0x9A3207B7); // 2586970039
+
+                foreach (var projectile in projectileEntities)
+                {
+
+                    projectile.ApplyForce(projectile.RightVector * 5);
+                }
             }
 
             base.OnUpdate(gameTime);
@@ -65,8 +168,21 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// </summary>
         public void Start()
         {
-            RemoveAll();
-            activeFlareSequence?.ForEach(x => x.Start());
+            if (Game.GameTime - timeSinceLastDrop > MaxDropTime + CooldownTime)
+            {
+                RemoveAll();
+
+                for (int i = 0; i < sequenceList.Count; i++)
+                {
+                    sequenceList[i].Start();
+
+                    sqFlags |= (SequenceFlags)(1 << i);
+                }
+
+                timeSinceLastDrop = Game.GameTime;
+
+                bCooldownActive = true;
+            }
         }
 
         /// <summary>
@@ -74,7 +190,7 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// </summary>
         public void RemoveAll()
         {
-            activeFlareSequence?.ForEach(x => x.RemoveAll());
+            sequenceList.ForEach(x => x.RemoveAll());
         }
 
         public override void Dispose()
@@ -83,17 +199,28 @@ namespace AirSuperiority.ScriptBase.Extensions
 
             base.Dispose();
         }
+
+        [Flags]
+        enum SequenceFlags
+        {
+            NotRunning = 0,
+            Active = 1
+        }
     }
 
-    public class IRFlareSequence
+    public sealed class IRFlareSequence
     {
-        private bool active;
+        private bool dropActive;
         private Vehicle baseVehicle;
-        private int timeout, dropTimeout;
+        private int intervalTimeout, dropTimeout;
         private int dropInterval, maxDropTime;
         private Vector3 dropOffset;
         private ForceType forceType;
         private float forceMultiplier;
+        private bool randomizeVel;
+        private bool cleanupCompleted = true;
+
+        public event EventHandler OnCompleted;
 
         private List<IRFlare> activeFlares = new List<IRFlare>();
 
@@ -108,6 +235,16 @@ namespace AirSuperiority.ScriptBase.Extensions
         public int DropInterval { get { return dropInterval; } }
 
         /// <summary>
+        /// Whether the sequence has fully completed
+        /// </summary>
+        public bool Completed { get { return cleanupCompleted; } }
+
+        /// <summary>
+        /// Whether to randomize the velocity at dropping time
+        /// </summary>
+        public bool RandomDropVelocity { get { return randomizeVel; } }
+
+        /// <summary>
         /// Initialize the class
         /// </summary>
         /// <param name="baseVehicle">Target vehicle</param>
@@ -116,7 +253,7 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// <param name="dropOffset">Spawn offset relative to base vehicle</param>
         /// <param name="forceType">The type of directional force to apply on spawn</param>
         /// <param name="forceMultiplier">Force multiplier</param>
-        public IRFlareSequence(Vehicle baseVehicle, int dropInterval, int maxDropTime, Vector3 dropOffset, ForceType forceType, float forceMultiplier)
+        public IRFlareSequence(Vehicle baseVehicle, int dropInterval, int maxDropTime, Vector3 dropOffset, ForceType forceType, float forceMultiplier, bool randomizeVel)
         {
             this.baseVehicle = baseVehicle;
             this.dropInterval = dropInterval;
@@ -124,6 +261,12 @@ namespace AirSuperiority.ScriptBase.Extensions
             this.dropOffset = dropOffset;
             this.forceType = forceType;
             this.forceMultiplier = forceMultiplier;
+            this.randomizeVel = randomizeVel;
+        }
+
+        private void OnSequenceCompleted(EventArgs args)
+        {
+            OnCompleted?.Invoke(this, args);
         }
 
         /// <summary>
@@ -132,9 +275,10 @@ namespace AirSuperiority.ScriptBase.Extensions
         public void Start()
         {
             RemoveAll();
-            timeout = Game.GameTime + dropInterval;
+            intervalTimeout = Game.GameTime + dropInterval;
             dropTimeout = Game.GameTime + maxDropTime;
-            active = true;
+            cleanupCompleted = false;
+            dropActive = true;
         }
 
         /// <summary>
@@ -152,52 +296,83 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// <summary>
         /// Update the class
         /// </summary>
-        public void Update(int gameTime)
+        public void Update()
         {
-            if (activeFlares.Count > 0)
+            if (!cleanupCompleted)
             {
-                var nearbyProjectiles = World.GetNearbyEntities(baseVehicle.Position - baseVehicle.ForwardVector * 50, 50f)
-                    .Where(x => x.Model.Hash == -1707997257);
-
-                foreach (var proj in nearbyProjectiles)
+                if (activeFlares.Count > 0)
                 {
-                    proj.ApplyForce(-proj.RightVector * 5);
-                }
-
-                for (int i = 0; i < activeFlares.Count; i++)
-                {
-                    bool exists;
-                    activeFlares[i].Update(gameTime, out exists);
-
-                    if (!exists)
+                    for (int i = 0; i < activeFlares.Count; i++)
                     {
+                        bool exists;
+                        activeFlares[i].Update(out exists);
 
-                        activeFlares.RemoveAt(i);
+                        if (!exists)
+                        {
+                            activeFlares.RemoveAt(i);
+
+                            if (activeFlares.Count <= 0)
+                            {
+                                OnSequenceCompleted(new EventArgs());
+                                cleanupCompleted = true;
+                            }
+                        }
                     }
                 }
             }
 
-            if (active)
+            if (dropActive)
             {
-                if (gameTime > dropTimeout)
+                if (Game.GameTime > dropTimeout || !baseVehicle.IsDriveable)
                 {
-                    active = false;
+                    dropActive = false;
                     return;
                 }
 
-                if (gameTime > timeout)
+                if (Game.GameTime > intervalTimeout)
                 {
-                    var rot = new Vector3(80.0f, 0.0f, baseVehicle.Heading + 180.0f);
-                    var newFlare = new IRFlare(baseVehicle.GetOffsetInWorldCoords(dropOffset), rot);
+                    var rotation = new Vector3(80.0f, 0.0f, baseVehicle.Heading + 180.0f);
+
+                    var newFlare = new IRFlare(baseVehicle.GetOffsetInWorldCoords(dropOffset), rotation);
 
                     Vector3 force = forceType == ForceType.Down ? -baseVehicle.UpVector :
-                        forceType == ForceType.Left ? -baseVehicle.RightVector :
-                        forceType == ForceType.Right ? baseVehicle.RightVector :
+                        forceType == ForceType.Left ? -baseVehicle.RightVector + new Vector3(0, 0, -0.5f) :
+                        forceType == ForceType.Right ? baseVehicle.RightVector + new Vector3(0, 0, -0.5f) :
                         forceType == ForceType.Up ? baseVehicle.UpVector : Vector3.Zero;
 
-                    newFlare.Velocity = activeFlares.Count < 1 ?
-                        baseVehicle.Velocity + new Vector3(0f, 0f, -10f) :
-                        activeFlares[activeFlares.Count - 1].Velocity;
+                    Vector3 velocity = activeFlares.Count < 1 ?
+                           baseVehicle.Velocity + new Vector3(0f, 0f, -10f) :
+                           activeFlares[activeFlares.Count - 1].Velocity;
+
+                    if (randomizeVel)
+                    {
+                        var randItms = Enumerable.Range(0, 3000);
+
+                        float randX = randItms.GetRandomItem() / 1000.0f;
+                        float randY = randItms.GetRandomItem() / 1000.0f;
+                        float randZ = randItms.GetRandomItem() / 1000.0f;
+
+                        if (Probability.GetBoolean(0.50f))
+                        {
+                            randX = -randX;
+                        }
+
+                        if (Probability.GetBoolean(0.50f))
+                        {
+                            randY = -randY;
+                        }
+
+                        if (Probability.GetBoolean(0.50f))
+                        {
+                            randZ = -randZ;
+                        }
+
+                        var vForce = new Vector3(randX, randY, randZ);
+
+                        velocity += vForce;
+                    }
+
+                    newFlare.Velocity = velocity;
 
                     newFlare.ApplyForce(force * forceMultiplier);
 
@@ -205,17 +380,9 @@ namespace AirSuperiority.ScriptBase.Extensions
 
                     activeFlares.Add(newFlare);
 
-                    timeout = gameTime + dropInterval;
+                    intervalTimeout = Game.GameTime + dropInterval + new Random().Next(dropInterval, dropInterval + 50);
                 }
             }
-        }
-
-        public enum ForceType
-        {
-            Up,
-            Down,
-            Left,
-            Right
         }
     }
 
@@ -225,27 +392,11 @@ namespace AirSuperiority.ScriptBase.Extensions
         private bool timerActive;
         private LoopedParticle ptfx;
 
-        /// <summary>
-        /// Max time the entity will be active before fading fx
-        /// </summary>
-        private const int MaxAliveTime = 500;
-
-        /// <summary>
-        /// Initialize the class
-        /// </summary>
-        /// <param name="position"></param>
-        /// <param name="rotation"></param>
         public IRFlare(Vector3 position, Vector3 rotation) : base(Create(position, rotation))
         {
             ptfx = new LoopedParticle("core", "proj_flare_fuse");
         }
 
-        /// <summary>
-        /// Create the flare at the given position with rotation
-        /// </summary>
-        /// <param name="position">Spawn position</param>
-        /// <param name="rotation">Spawn rotation</param>
-        /// <returns></returns>
         private static int Create(Vector3 position, Vector3 rotation)
         {
             var model = new Model("prop_flare_01b");
@@ -258,54 +409,46 @@ namespace AirSuperiority.ScriptBase.Extensions
             Function.Call(Hash.SET_ENTITY_RECORDS_COLLISIONS, flare.Handle, true);
             Function.Call(Hash.SET_ENTITY_LOAD_COLLISION_FLAG, flare.Handle, true);
             Function.Call(Hash.SET_ENTITY_LOD_DIST, flare.Handle, 1000);
-            Function.Call(Hash.SET_OBJECT_PHYSICS_PARAMS, flare.Handle, -1.0f, -1.0f, -1.0f, -1.0f, 0.009888f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f);
+            Function.Call(Hash.SET_OBJECT_PHYSICS_PARAMS, flare.Handle, -1.0f, 1.2f, -1.0f, -1.0f, 0.010988f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f);
+
             flare.Rotation = rotation;
 
             return flare.Handle;
         }
 
-        /// <summary>
-        /// Start particle fx on the entity
-        /// </summary>
         public void StartFX()
         {
             if (!ptfx.IsLoaded)
                 ptfx.Load();
 
-            ptfx.Start(this, 4f);
+            ptfx.Start(new Prop(Handle), 2.4f);
 
-            tickTime = Game.GameTime + MaxAliveTime;
+            tickTime = Game.GameTime + 800;
             timerActive = true;
         }
 
-        /// <summary>
-        /// Remove particle fx and delete the entity
-        /// </summary>
         public void Remove()
         {
             ptfx.Remove();
             Delete();
         }
 
-        /// <summary>
-        /// Update the class
-        /// </summary>
-        /// <param name="exists"></param>
-        public void Update(int gameTime, out bool exists)
+        public void Update(out bool exists)
         {
-            if (timerActive && gameTime > tickTime)
+            if (timerActive && Game.GameTime > tickTime)
             {
                 if (ptfx.Exists && ptfx.Scale > 0.0f)
                 {
-                    ptfx.Scale -= 0.1f;
+                    ptfx.Scale -= 0.01f;
                     exists = true;
                 }
 
                 else
                 {
+                    //remove..
+                    Remove();
                     timerActive = false;
                     exists = false;
-                    Remove();
                 }
             }
 

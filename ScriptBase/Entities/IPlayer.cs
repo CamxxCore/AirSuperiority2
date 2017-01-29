@@ -16,7 +16,8 @@ namespace AirSuperiority.ScriptBase.Entities
         PlayerInfo Info { get; }
         ScriptPed Ped { get; }
         ScriptPlane Vehicle { get; }
-        List<PlayerExtensionBase> Extensions { get; }
+        PlayerExtensionPool Extensions { get; }
         void Create(LevelSpawn spawnPoint);
+        void Remove();
     }
 }

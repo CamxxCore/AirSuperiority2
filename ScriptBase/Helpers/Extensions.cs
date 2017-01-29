@@ -30,19 +30,6 @@ namespace AirSuperiority.ScriptBase.Helpers
         }
 
         /// <summary>
-        /// Whether the position is within the provided boundaries.
-        /// </summary>
-        /// <param name="toggle"></param>
-        public static bool IsWithin(this Vector3 v, Vector3 min, Vector3 max)
-        {
-            bool b = false;
-            b ^= (min.X > max.X ? v.X < min.X && v.X > max.X : v.X < max.X && v.X > min.X) ^ 
-                (min.Y > max.Y ? v.Y < min.Y && v.Y > max.Y : v.Y < max.Y && v.Y > min.Y) ^
-                (min.Z > max.Z ? v.Z < min.Z && v.Z > max.Z : v.Z < max.Z && v.Z > min.Z);
-            return b;
-        }
-
-        /// <summary>
         /// Extension for converting a team color index to its equivelent system color.
         /// </summary>
         /// <param name="color"></param>
@@ -71,6 +58,12 @@ namespace AirSuperiority.ScriptBase.Helpers
                     return Color.SkyBlue;
                 case TeamColor.Yellow:
                     return Color.Yellow;
+                case TeamColor.LimeGreen:
+                    return Color.LimeGreen;
+                case TeamColor.Cyan:
+                    return Color.Cyan;
+                case TeamColor.Crimson:
+                    return Color.Crimson;
                 default: return Color.Empty;
             }
         }

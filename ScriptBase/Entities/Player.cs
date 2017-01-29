@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using AirSuperiority.Core;
 using AirSuperiority.ScriptBase.Types;
 using AirSuperiority.ScriptBase.Extensions;
-using AirSuperiority.ScriptBase.Helpers;
 using GTA;
 using GTA.Math;
 using GTA.Native;
@@ -62,9 +60,14 @@ namespace AirSuperiority.ScriptBase.Entities
 
         public event GamePlayerEventHandler OnDead, OnAlive;
 
-        public Player(ScriptThread thread, PlayerInfo info) : base(thread, info.Name)
+        public Player(ScriptThread thread) : base(thread)
+        { }
+
+        public Player InitializeFrom(PlayerInfo info)
         {
             Info = info;
+            Name = info.Name;
+            return this;
         }
 
         public virtual void Create(LevelSpawn spawnPoint)
@@ -77,20 +80,20 @@ namespace AirSuperiority.ScriptBase.Entities
         /// </summary>
         public virtual void SetupExtensions()
         {
-            AddExtension(new RespawnManager(BaseThread, this));
-            AddExtension(new LandingGearManager(BaseThread, this));
+            CreateExtension(new RespawnManager(BaseThread, this));
+            CreateExtension(new LandingGearManager(BaseThread, this));
         }
 
         /// <summary>
         /// Pool of extensions attached to this player.
         /// </summary>
-        public List<PlayerExtensionBase> Extensions { get; } = new List<PlayerExtensionBase>();
+        public PlayerExtensionPool Extensions { get; } = new PlayerExtensionPool();
 
         /// <summary>
-        /// Add a script extension to this player.
+        /// Get a script extension attached to this player.
         /// </summary>
         /// <param name="extension"></param>
-        public void AddExtension(PlayerExtensionBase extension)
+        public void CreateExtension(PlayerExtensionBase extension)
         {
             if (!Extensions.Contains(extension))
             {
@@ -99,14 +102,22 @@ namespace AirSuperiority.ScriptBase.Entities
         }
 
         /// <summary>
-        /// Assign a ManagedPed and ManagedVehicle instance to this player.
+        /// Get a script extension attached to this player.
         /// </summary>
-        /// <param name="Pilot"></param>
-        /// <param name="Vehicle"></param>
+        public T GetExtension<T>() where T : PlayerExtensionBase, new()
+        {
+            return Extensions.Get<T>();
+        }
+
+        /// <summary>
+        /// Assign a <see cref="ScriptPed"/> and <see cref="ScriptPlane"/> instance to this player.
+        /// </summary>
+        /// <param name="ped"></param>
+        /// <param name="vehicle"></param>
         /// <returns></returns>
         public void Manage(Ped ped, Vehicle vehicle)
         {
-            Remove();
+            DisposePedAndVehicle();    
 
             Ped = new ScriptPed(BaseThread, ped);
 
@@ -115,10 +126,6 @@ namespace AirSuperiority.ScriptBase.Entities
             // Aggregate dead/ alive events into a single event handler...
 
             Vehicle.Alive += OnPlayerAlive;
-
-            //   Vehicle.EnterWater += OnPlayerDead;
-
-            // Ped.Dead += OnPlayerDead;
 
             Vehicle.Undrivable += OnPlayerDead;
 
@@ -170,30 +177,29 @@ namespace AirSuperiority.ScriptBase.Entities
         }
 
         /// <summary>
-        /// Set target and begin vehicle mission.
+        /// Persue the target.
         /// </summary>
-        /// <param name="opponent"></param>
-        public void SetTarget(Player opponent)
+        /// <param name="target"></param>
+        public void PersueTarget(Player target)
         {
-            Ped ped = opponent.Ped.Ref;
+            Ped ped = target.Ped.Ref;
 
             Vector3 position = ped.Position;
 
             Function.Call(Hash.TASK_PLANE_MISSION,
                 Ped.Ref.Handle,
                 Vehicle.Ref.Handle,
-                opponent.Vehicle.Ref,
+                target.Vehicle.Ref,
                 ped.Handle,
                 position.X, position.Y, position.Z,
-                6, 5.0, -1.0, 30.0, 500, 50);
+                (int) VehicleTaskType.CTaskVehicleAttack, 70.0, -1.0, 40.0f, 500, 100);
 
-            ActiveTarget = opponent;
+            ActiveTarget = target;
         }
 
-        /// <summary>
-        /// Set active target for vehicle mission natives.
-        /// </summary>
-        /// <param name="fighter"></param>
+       /// <summary>
+       /// Clear the active target.
+       /// </summary>
         public void ClearActiveTarget()
         {
             ActiveTarget = null;
@@ -223,16 +229,42 @@ namespace AirSuperiority.ScriptBase.Entities
         }
 
         /// <summary>
-        /// Removes the ped and vehicle from the world.
+        /// Clear all active extensions from the player.
         /// </summary>
-        public void Remove()
+        public void ClearExtensions()
         {
-            if (Ped != null && !Ped.IsHuman)
+            foreach (var extension in Extensions)
             {
-                Ped.Dispose();
+                extension.Dispose();
             }
 
+            Extensions.Clear();
+        }
+
+        /// <summary>
+        /// Removes the ped and vehicle from the world.
+        /// </summary>
+        public void DisposePedAndVehicle()
+        {
+            Ped?.Dispose();
             Vehicle?.Dispose();
+        }
+
+        public void Remove()
+        {
+            Ped?.Remove();
+            Vehicle?.Remove();
+        }
+
+        public override void Dispose()
+        {
+            ClearExtensions();
+
+            DisposePedAndVehicle();
+
+            Remove();
+
+            base.Dispose();
         }
     }
 }

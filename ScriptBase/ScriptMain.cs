@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.Windows.Forms;
 using AirSuperiority.Core;
+using AirSuperiority.ScriptBase.Memory;
 using AirSuperiority.ScriptBase.Logic;
 using AirSuperiority.ScriptBase.Helpers;
 using GTA;
@@ -28,40 +29,27 @@ namespace AirSuperiority.ScriptBase
 
         private void PreInit()
         {
-         //   Utility.ToggleOnlineDLC(true);
+            Game.Globals[4].SetInt(1); // disable respawn_controller
+
+            Function.Call(Hash.TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME, "respawn_controller");
+
+            Function.Call(Hash._DISABLE_AUTOMATIC_RESPAWN, true);
+
+            Function.Call(Hash.SET_WANTED_LEVEL_MULTIPLIER, 0.0);
+
+            Function.Call(Hash.SET_MAX_WANTED_LEVEL, 0);
+
+            MemoryAccess.PatchFlyingMusic();
+
+            //Utility.ToggleOnlineDLC(true);
+
             inputMgr = new InputManager(this);
-            sessionMgr = new SessionManager(this);
-            displayMgr = new DisplayManager(this);
+
             levelMgr = new LevelManager(this);
-        }
 
-        public static InputManager GetInputManager()
-        {
-            return inputMgr;
-        }
+            sessionMgr = new SessionManager(this);
 
-        /// <summary>
-        /// Get the session manager.
-        /// </summary>
-        public static SessionManager GetSessionManager()
-        {
-            return sessionMgr;
-        }
-
-        /// <summary>
-        /// Get the display manager.
-        /// </summary>
-        public static DisplayManager GetDisplayManager()
-        {
-            return displayMgr;
-        }
-
-        /// <summary>
-        /// Gets the level manager.
-        /// </summary>
-        public static LevelManager GetLevelManager()
-        {
-            return levelMgr;
+            displayMgr = new DisplayManager(this);
         }
 
         /// <summary>
@@ -76,73 +64,47 @@ namespace AirSuperiority.ScriptBase
             displayMgr.WriteDebugLine(string.Format(format, args));
 #endif
         }
-
+        
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.M)
             {
-               // var sess = sessionMgr;
-
-               // UI.ShowSubtitle(GTA.Math.Vector3.Lerp(sess.GetTeamByIndex(0).SpawnPoint.Position, sess.GetTeamByIndex(1).SpawnPoint.Position, 0.5f).ToString(), 10000);
-             //   var metadata = Resources.GetByName<Types.Metadata.MapAreaAssetMetadata>("MapArea");
-             
-            //    var mapData = metadata.FirstOrDefault(m => m.LevelIndex == 0);
-
-              //  var rdm = Utility.GetRandomPositionInArea(mapData.BoundsMin, mapData.BoundsMax).ToString();
-
-              //  UI.ShowSubtitle(rdm + " " + mapData.BoundsMax.ToString() + " " + mapData.BoundsMin.ToString());
+                displayMgr.ShowWarningThisFrame("ENEMY LOCKING");
             }
 
             if (e.KeyCode == Keys.N)
             {
-               Utility.FadeInScreen(1);
+              // Utility.FadeInScreen(1);
 
                foreach (var vehicle in World.GetAllEntities())
                 {
                     vehicle.Delete();
                 }
 
-
                 displayMgr.HideScoreboard();
 
-                sessionMgr.Initialize(0, 32, 2);
-
-            
-
-             //   UI.ShowSubtitle(
-
-                /* Blip wpBlip = new Blip(Function.Call<int>(Hash.GET_FIRST_BLIP_INFO_ID, 8));
-
-                  if (Function.Call<bool>(Hash.IS_WAYPOINT_ACTIVE))
-                  {
-                      GTA.Math.Vector3 wpVec = Function.Call<GTA.Math.Vector3>(Hash.GET_BLIP_COORDS, wpBlip);
-
-                      UI.ShowSubtitle(wpBlip.Position.ToString(), 10000);
-                  }
-                  GTA.World.CreateBlip(new GTA.Math.Vector3( 3103.298f, -4818.269f, 15.76617f));
-
-                  var pos = GTA.Game.Player.Character.Position;
-
-                  var rad = pos.Radiate(1430.0f, 12.0f, (float)curr);
-
-                  curr--;
-
-                  GTA.World.CreateBlip(rad);
-
-                  GTA.UI.ShowSubtitle(rad.ToString(), 10000);
-
-                  var dir = GTA.Math.Vector3.Normalize(pos - rad);
-
-                  float heading = GTA.Native.Function.Call<float>(GTA.Native.Hash.GET_HEADING_FROM_VECTOR_2D, dir.X, dir.Y);*/
+                sessionMgr.Initialize(0, 12, 2);        
             }
+        }
+
+        public override void OnUpdate(int gameTime)
+        {
+            Function.Call(Hash.SET_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME, 0.0f);
+
+            Function.Call(Hash.SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME, 0.0f);
+
+            Function.Call((Hash)0x90B6DA738A9A25DA, 0.0f);
+
+            base.OnUpdate(gameTime);
         }
 
         protected override void Dispose(bool A_0)
         {
-            foreach (var blip in World.GetActiveBlips())
-            {
-                blip.Remove();
-            }
+            Game.Globals[4].SetInt(0); // enable respawn_controller
+
+            Function.Call(Hash._DISABLE_AUTOMATIC_RESPAWN, false);
+
+            MemoryAccess.OnExit();
 
             base.Dispose(A_0);
         }

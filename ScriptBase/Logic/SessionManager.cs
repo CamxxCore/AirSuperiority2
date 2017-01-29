@@ -7,6 +7,7 @@ using AirSuperiority.ScriptBase.Types.Metadata;
 using AirSuperiority.ScriptBase.Helpers;
 using AirSuperiority.ScriptBase.Entities;
 using GTA;
+using GTA.Native;
 using Player = AirSuperiority.ScriptBase.Entities.Player;
 
 namespace AirSuperiority.ScriptBase.Logic
@@ -20,12 +21,13 @@ namespace AirSuperiority.ScriptBase.Logic
 
         private SessionInfo current;
 
-        private LevelSpawn[] activeSpawns;
-
         private TeamInfo[] activeTeams = new TeamInfo[0];
+
+        private LevelManager levelMgr;
 
         public SessionManager(ScriptThread thread) : base(thread)
         {
+            levelMgr = thread.Get<LevelManager>();
             SetupRelationshipGroups();
         }
 
@@ -83,7 +85,14 @@ namespace AirSuperiority.ScriptBase.Logic
             return activeTeams[teamIndex];
         }
 
-       
+        /// <summary>
+        /// Add score for the specified team.
+        /// </summary>
+        public void AddTeamScore(int teamIndex, int score)
+        {
+            activeTeams[teamIndex].Current.Score += score;
+        }
+
         /// <summary>
         /// Find the team with the least members.
         /// </summary>
@@ -112,14 +121,12 @@ namespace AirSuperiority.ScriptBase.Logic
                     + teamsCount + " teams! Found " + metadata.Count() + " entries.");
             }
 
-            var ui = ScriptMain.GetDisplayManager();
+            var ui = BaseThread.Get<DisplayManager>();
 
             var previous = activeTeams;
 
-
             Array.Clear(activeTeams, 0, activeTeams.Length);
             
-
             activeTeams = new TeamInfo[teamsCount];
 
             for (int i = 0; i < activeTeams.Length; i++)
@@ -128,9 +135,7 @@ namespace AirSuperiority.ScriptBase.Logic
                 !previous.Any(z => z?.FriendlyName == m.FriendlyName) &&
                 !activeTeams.Any(y => y?.FriendlyName == m.FriendlyName)).GetRandomItem();
 
-                var team = new TeamInfo(i, foundTeam.FriendlyName, (TeamColor)i, GetTeamSpawn(i), new TeamStatus());
-
-                World.CreateBlip(team.SpawnPoint.Position);
+                var team = new TeamInfo(i, foundTeam.FriendlyName, new TeamStatus(), rGroups[i]);
 
                 ui.SetTeamSlotFromMetadata(i, foundTeam);
 
@@ -146,8 +151,10 @@ namespace AirSuperiority.ScriptBase.Logic
         public void Initialize(int levelIndex, int numPlayers, int numTeams)
         {
             ScriptMain.DebugPrint("SessionManager.Initialize() - Initializing a new session with {0} players and {1} total teams.", numPlayers, numTeams);
+    
+            levelMgr.DoLoadLevel(current.LevelIndex);
 
-            SetupSpawnsForMapIndex(levelIndex, numTeams);
+            Game.Player.Teleport(levelMgr.Level.MapCenter, 0);
 
             GetNewTeams(numTeams);
 
@@ -159,92 +166,52 @@ namespace AirSuperiority.ScriptBase.Logic
             
             for (int i = 0; i < numPlayers; i++)
             {
-                var team = FindFreeTeam();
+                TeamInfo team = FindFreeTeam();
 
-                current.AddPlayer(i, team.Index);
+                Player player = CreatePlayer(i, team, i < 1);
 
-                Player player = CreatePlayer(i, team.Index, i < 1);
+                current.AddPlayer(i, team.Index, player);
 
-                ScriptMain.DebugPrint("Added a new player at slot '{0}' with name \"{1}\" teamIdx: {2}", i, player.Name, team.Index);
+                //ScriptMain.DebugPrint("Added a new player at slot '{0}' with name \"{1}\" teamIdx: {2}", i, player.Name, team.Index);
             }
-
-            var mgr = ScriptMain.GetLevelManager();
-
-            mgr.DoLoadLevel(current.LevelIndex);
 
             sessionActive = true;
         }
 
         /// <summary>
-        /// Grab level spawns for the given map index.
-        /// </summary>
-        /// <param name="mapIndex"></param>
-        protected void SetupSpawnsForMapIndex(int mapIndex, int numTeams)
-        {
-            var metadata = Resources.GetMetaEntry<SpawnPointAssetMetadata>("SpawnPoint");
-
-            int count = metadata.Count();
-
-            ScriptMain.DebugPrint("Found " + count + " spawn points defined in metadata for map index '" + mapIndex + "'");
-
-            metadata = metadata.Where(m => m.MapIndex == mapIndex);
-
-            if (count < numTeams)
-            {
-                throw new InvalidOperationException("SetupMapSpawns - Not enough spawn points defined in metadata for map index '" + mapIndex + "'! Found " + count + " entries.");
-            }
-
-            activeSpawns = metadata.Select(m => new LevelSpawn(m.Position, m.Heading)).ToArray();
-        }
-
-        /// <summary>
-        /// Find the level spawn point for the given team index.
-        /// </summary>
-        /// <param name="teamIndex"></param>
-        /// <returns></returns>
-        protected LevelSpawn GetTeamSpawn(int teamIndex)
-        {
-            if (teamIndex < 0 || teamIndex > activeSpawns.Length)
-                throw new ArgumentOutOfRangeException("SessionManager.GetTeamSpawn() - teamIndex out of range");
-            return activeSpawns[teamIndex];
-        }
-
-        /// <summary>
-        /// Instantiate a player for the session at the given slot.
+        /// Instantiate and setup a new player instance.
         /// </summary>
         /// <param name="slotIndex"></param>
         /// <param name="teamIndex"></param>
         /// <param name="bIsLocal"></param>
         /// <returns></returns>
-        private Player CreatePlayer(int slotIndex, int teamIndex, bool bIsLocal)
+        private Player CreatePlayer(int playerIndex, TeamInfo team, bool bIsLocal)
         {
-            Player player;
-
-             PlayerInfo info;
-
             if (bIsLocal)
             {
-                info = new PlayerInfo(Game.Player.Name, teamIndex, Game.GameTime);
+                var player = new LocalPlayer(BaseThread);
 
-                player = new LocalPlayer(BaseThread, info);
+                player.InitializeFrom(new PlayerInfo(Game.Player.Name, team.Index, Game.GameTime));
+
+                player.Create(levelMgr.GetSpawnPoint(team.Index));
+
+                player.SetupExtensions();
+
+                return player;
             }
 
             else
             {
-                info = new PlayerInfo(string.Format("aiplayer{0}", slotIndex), teamIndex, Game.GameTime);
+                var player = new AIPlayer(BaseThread);
 
-                player = new AIPlayer(BaseThread, info);
-            }
+                player.InitializeFrom(new PlayerInfo(string.Format("aiplayer{0}", playerIndex), team.Index, Game.GameTime));
 
-            player.Create(GetTeamByIndex(teamIndex).SpawnPoint);
+                player.Create(levelMgr.GetSpawnPoint(team.Index));
 
-            player.SetupExtensions();
+                player.SetupExtensions();
 
-            player.Ped.Ref.RelationshipGroup = rGroups[teamIndex];
-
-            current.Players[slotIndex].EntityRef = player;
-
-            return player;
+                return player;
+            }    
         }
 
         public override void Dispose()

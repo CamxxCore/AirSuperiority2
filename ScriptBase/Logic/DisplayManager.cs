@@ -24,10 +24,12 @@ namespace AirSuperiority.ScriptBase.Logic
 
         private DebugOutput dbgOutput = new DebugOutput();
 
+        private FighterDisplay fighterHUD = new FighterDisplay();
+
         public DisplayManager(ScriptThread thread) : base(thread)
         {
-            inputMgr = ScriptMain.GetInputManager();
-            sessionMgr = ScriptMain.GetSessionManager();
+            inputMgr = thread.Get<InputManager>();
+            sessionMgr = thread.Get<SessionManager>();
         }
 
         /// <summary>
@@ -52,6 +54,11 @@ namespace AirSuperiority.ScriptBase.Logic
         public void HideScoreboard()
         {
             showScoreboard = false;
+        }
+
+        public void ShowWarningThisFrame(string text)
+        {
+            fighterHUD.ShowWarning(text);
         }
 
         /// <summary>

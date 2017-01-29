@@ -12,7 +12,7 @@ namespace AirSuperiority.ScriptBase.Helpers
 
         private int componentID;
 
-        protected void CallFunction(string functionName, params object[] args)
+        public void CallFunction(string functionName, params object[] args)
         {
             Function.Call(Hash._PUSH_SCALEFORM_MOVIE_FUNCTION_FROM_HUD_COMPONENT, componentID, functionName);
 

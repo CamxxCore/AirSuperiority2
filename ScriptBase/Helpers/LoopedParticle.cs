@@ -140,12 +140,9 @@ namespace AirSuperiority.ScriptBase.Helpers
         /// <summary>
         /// Remove the particle FX in range
         /// </summary>
-        public void Remove(Vector3 position, float radius)
+        public static void Remove(Vector3 position, float radius)
         {
-            if (Handle == -1) return;
-
             Function.Call(Hash.REMOVE_PARTICLE_FX_IN_RANGE, position.X, position.Y, position.Z, radius);
-            Handle = -1;
         }
 
         /// <summary>

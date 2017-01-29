@@ -39,7 +39,7 @@ namespace AirSuperiority.ScriptBase.Types
             }
         }
 
-        public SessionPlayer AddPlayer(int playerIndex, int teamIdx, Entities.Player entityRef)
+        public SessionPlayer AddPlayer(int playerIndex, int teamIdx, Player entityRef)
         {
             SessionPlayer player = new SessionPlayer(teamIdx, entityRef);
             Players[playerIndex] = player;

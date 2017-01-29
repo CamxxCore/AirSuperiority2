@@ -18,7 +18,7 @@ namespace AirSuperiority.ScriptBase.Extensions
 
         public EntityInfoOverlay(ScriptThread thread, Player player) : base(thread, player)
         {
-            sessionMgr = ScriptMain.GetSessionManager();
+            sessionMgr = thread.Get<SessionManager>();
         }
 
         /// <summary>

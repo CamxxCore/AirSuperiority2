@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace AirSuperiority.ScriptBase.Types
 {
-    public struct TeamStatus
+    public class TeamStatus
     {
         public int Score { get; set; }
     }

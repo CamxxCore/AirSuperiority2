@@ -10,12 +10,13 @@ namespace AirSuperiority.ScriptBase.Types
         public LevelInfo()
         { }
 
-        public LevelInfo(string name, int levelIndex, LevelBounds bounds, LevelBounds aiBounds, Vector3 mapCenter, string[] placements)
+        public LevelInfo(string name, int levelIndex, LevelBounds bounds, LevelBounds aiBounds, LevelSpawn[] spawns, Vector3 mapCenter, string[] placements)
         {
             Name = name;
             LevelIndex = levelIndex;
             Bounds = bounds;
             AIBounds = aiBounds;
+            SpawnPoints = spawns;
             MapCenter = mapCenter;
             Placements = placements;
         }
@@ -27,6 +28,8 @@ namespace AirSuperiority.ScriptBase.Types
         public LevelBounds Bounds { get; set; }
 
         public LevelBounds AIBounds { get; set; }
+
+        public LevelSpawn[] SpawnPoints { get; set; }
 
         public Vector3 MapCenter { get; set; }
 

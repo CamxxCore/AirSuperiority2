@@ -16,7 +16,7 @@ namespace AirSuperiority.ScriptBase.Entities
 
         private IRFlareManager flareMgr;
 
-        public LocalPlayer(ScriptThread thread, PlayerInfo info) : base(thread, info)
+        public LocalPlayer(ScriptThread thread) : base(thread)
         { }
 
         public override void Create(LevelSpawn spawnPoint)
@@ -34,6 +34,7 @@ namespace AirSuperiority.ScriptBase.Entities
 
             vehicle.LodDistance = 2000;
             vehicle.EngineRunning = true;
+            vehicle.MaxSpeed = 210;
 
             Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, vehicle, true);
 
@@ -51,10 +52,11 @@ namespace AirSuperiority.ScriptBase.Entities
         {
             base.SetupExtensions();
 
-            AddExtension(new SpawnVelocityBooster(BaseThread, this));
-            AddExtension(new SpawnLerpingCamera(BaseThread, this));
-            AddExtension(extinguisher = new EngineExtinguisher(BaseThread, this));
-            AddExtension(flareMgr = new IRFlareManager(BaseThread, this));    
+            CreateExtension(new SpawnVelocityBooster(BaseThread, this));
+            CreateExtension(new SpawnLerpingCamera(BaseThread, this));
+            CreateExtension(new PlayerHUDManager(BaseThread, this));
+            CreateExtension(flareMgr = new IRFlareManager(BaseThread, this));
+            CreateExtension(extinguisher = new EngineExtinguisher(BaseThread, this));
         }
 
         public override void OnUpdate(int gameTime)

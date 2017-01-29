@@ -10,9 +10,8 @@ namespace AirSuperiority.ScriptBase.Entities
 {
     public class AIPlayer : Player
     {
-        public AIPlayer(ScriptThread thread, PlayerInfo info) : base(thread, info)
-        {
-        }
+        public AIPlayer(ScriptThread thread) : base(thread)
+        { }
 
         public override void Create(LevelSpawn spawnPoint)
         {
@@ -37,6 +36,10 @@ namespace AirSuperiority.ScriptBase.Entities
             vehicle.EngineRunning = true;
             vehicle.BodyHealth = 0.01f;
             vehicle.MaxHealth = 1;
+
+            vehicle.MaxSpeed = 210;
+
+           // vehicle.MaxSpeed = 200.0f;
 
             Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, vehicle, true);
 
@@ -64,9 +67,8 @@ namespace AirSuperiority.ScriptBase.Entities
         public override void SetupExtensions()
         {
             base.SetupExtensions();
-
-            AddExtension(new PilotAIController(BaseThread, this));
-            AddExtension(new EntityInfoOverlay(BaseThread, this));
+            CreateExtension(new PilotAIController(BaseThread, this));
+            CreateExtension(new EntityInfoOverlay(BaseThread, this));
         }
     }
 }

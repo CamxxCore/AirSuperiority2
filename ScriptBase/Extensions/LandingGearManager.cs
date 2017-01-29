@@ -9,7 +9,7 @@ namespace AirSuperiority.ScriptBase.Extensions
     /// </summary>
     public class LandingGearManager : PlayerExtensionBase
     {
-        private const int TotalWaitTime = 2600;
+        private const int TotalWaitTime = 1600;
 
         private int gearTriggerTime = 0;
 

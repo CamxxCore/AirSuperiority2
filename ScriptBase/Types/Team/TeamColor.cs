@@ -17,6 +17,9 @@ namespace AirSuperiority.ScriptBase.Types
         Fuchsia = 6,
         Gold = 7,
         Gray = 8,
-        SkyBlue = 9
+        SkyBlue = 9,
+        LimeGreen = 10,
+        Cyan = 11,
+        Crimson = 12,
     }
 }

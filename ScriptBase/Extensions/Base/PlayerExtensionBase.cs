@@ -44,5 +44,10 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// <param name="entity"></param>
         public virtual void OnPlayerDetached(Player player)
         { }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+        }
     }
 }
