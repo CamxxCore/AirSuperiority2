@@ -27,13 +27,13 @@ namespace AirSuperiority.ScriptBase.Helpers
         public FighterDisplay()
         {
             var location = new Point((int)(UI.WIDTH / 2) - 150, 80);
-            warningBackground = new UIContainer(location, new Size(300, 70), Color.FromArgb(130, 55 , 55, 55));
+            warningBackground = new UIContainer(location, new Size(400, 70), Color.FromArgb(130, 55 , 55, 55));
             CreateText();
         }
 
         private void CreateText()
         {
-            warningText = new UIText(string.Empty, new Point(150, 11), 1f, Color.FromArgb(130, Color.Red), GTA.Font.Monospace, true);
+            warningText = new UIText(string.Empty, new Point(200, 11), 1f, Color.FromArgb(130, Color.Red), GTA.Font.Monospace, true);
             warningBackground.Items.Add(warningText);
         }
 

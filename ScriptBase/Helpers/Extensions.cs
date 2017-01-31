@@ -30,6 +30,43 @@ namespace AirSuperiority.ScriptBase.Helpers
         }
 
         /// <summary>
+        /// Gets and sets the translation vector of the Matrix.
+        /// </summary>
+        public static Vector3 Translation(this Matrix matrix)
+        {
+            return new Vector3(
+            matrix.M41,
+            matrix.M42,
+            matrix.M43);
+        }
+
+        public static Matrix ToSHVDNMatrix(this CMatrix matrix)
+        {
+            Matrix retVal;
+            retVal.M11 = matrix.M11;
+            retVal.M12 = matrix.M12;
+            retVal.M13 = matrix.M13;
+            retVal.M14 = matrix.M14;
+
+            retVal.M21 = matrix.M21;
+            retVal.M22 = matrix.M22;
+            retVal.M23 = matrix.M23;
+            retVal.M24 = matrix.M24;
+
+            retVal.M31 = matrix.M31;
+            retVal.M32 = matrix.M32;
+            retVal.M33 = matrix.M33;
+            retVal.M34 = matrix.M34;
+
+            retVal.M41 = matrix.M41;
+            retVal.M42 = matrix.M42;
+            retVal.M43 = matrix.M43;
+            retVal.M44 = matrix.M44;
+
+            return retVal;
+        }
+
+        /// <summary>
         /// Extension for converting a team color index to its equivelent system color.
         /// </summary>
         /// <param name="color"></param>

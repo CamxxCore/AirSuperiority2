@@ -37,9 +37,11 @@ namespace AirSuperiority.ScriptBase.Entities
             vehicle.BodyHealth = 0.01f;
             vehicle.MaxHealth = 1;
 
-            vehicle.MaxSpeed = 210;
+            vehicle.SteeringScale = 2.0f;
 
-           // vehicle.MaxSpeed = 200.0f;
+            //     vehicle.MaxSpeed = 210;
+
+            vehicle.MaxSpeed = 300.0f;
 
             Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, vehicle, true);
 
@@ -54,11 +56,32 @@ namespace AirSuperiority.ScriptBase.Entities
 
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 52, 0);
 
-            Function.Call(Hash.SET_PED_CAN_SWITCH_WEAPON, ped, false);
+            //   Function.Call(Hash.SET_PED_CAN_SWITCH_WEAPON, ped, false);
 
             ped.SetIntoVehicle(vehicle, VehicleSeat.Driver);
 
+
             Manage(ped, vehicle);
+        }
+
+        public override void OnUpdate(int gameTime)
+        {
+            if (Vehicle.Ref.IsDamaged)
+            {
+                Vehicle.Ref.ApplyForce(Vehicle.Ref.ForwardVector * 0.9f);
+            }
+
+            /*   var outArg = new OutputArgument();
+               if (Function.Call<bool>(Hash.GET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, outArg))
+               {
+                   var weaponHash = Function.Call<int>(Hash.GET_HASH_KEY, "vehicle_weapon_plane_rocket");
+
+                   if (outArg.GetResult<int>() != weaponHash)
+                       Function.Call(Hash.SET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, weaponHash);
+               }*/
+
+
+            base.OnUpdate(gameTime);
         }
 
         /// <summary>
@@ -67,8 +90,9 @@ namespace AirSuperiority.ScriptBase.Entities
         public override void SetupExtensions()
         {
             base.SetupExtensions();
-            CreateExtension(new PilotAIController(BaseThread, this));
-            CreateExtension(new EntityInfoOverlay(BaseThread, this));
+            GetOrCreateExtension<AISteeringController>();
+            GetOrCreateExtension<PilotAIController>();
+            GetOrCreateExtension<EntityInfoOverlay>();
         }
     }
 }

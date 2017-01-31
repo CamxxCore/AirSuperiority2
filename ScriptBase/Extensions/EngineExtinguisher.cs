@@ -14,7 +14,16 @@ namespace AirSuperiority.ScriptBase.Extensions
     {
         const int TotalEffectTime = 5000;
 
+        /// <summary>
+        /// Max time for cooldown (ms). <b>Default =</b> 3100
+        /// </summary>
+        public int CooldownTime { get; set; } = 20000;
+
         private int effectStartTime = 0;
+
+        private bool bCooldownActive = false;
+
+        public bool CooldownActive {  get { return bCooldownActive; } }
 
         LoopedParticle extingusherPtx = new LoopedParticle("core", "ent_sht_extinguisher");
 
@@ -47,26 +56,44 @@ namespace AirSuperiority.ScriptBase.Extensions
         {
             if (IsActive) return;
 
-            Bone boneIdx = (Bone)Function.Call<int>((Hash)0xFB71170B7E76ACBA, Player.Vehicle.Ref.Handle, "afterburner");
+            if (Game.GameTime - effectStartTime > TotalEffectTime + CooldownTime)
+            {
+                Player.Vehicle.Ref.Repair();
 
-            extingusherPtx.Start(Player.Vehicle.Ref, 4f, new Vector3(0f, 1f, 0), new Vector3(89.5f, 0f, 0), boneIdx);
+                Bone boneIdx = (Bone)Function.Call<int>((Hash)0xFB71170B7E76ACBA, Player.Vehicle.Ref.Handle, "afterburner");
 
-            extinguisherSfx.Play(Player.Vehicle.Ref);
+                extingusherPtx.Start(Player.Vehicle.Ref, 4f, new Vector3(0f, 1f, 0), new Vector3(89.5f, 0f, 0), boneIdx);
 
-            effectStartTime = Game.GameTime;
+                extingusherPtx.SetEvolution("LOD", 2000.0f);
 
-            wasActive = true;
+                extinguisherSfx.Play(Player.Vehicle.Ref);
+               
+                effectStartTime = Game.GameTime;
+
+                bCooldownActive = true;
+
+                wasActive = true;
+            }
         }
 
         public override void OnUpdate(int gameTime)
         {
+            if (bCooldownActive && Game.GameTime - effectStartTime > TotalEffectTime + CooldownTime)
+            {
+                UI.Notify("Extinguisher available.");
+
+                bCooldownActive = false;
+            }
+
             if (IsActive)
             {
-                Player.Vehicle.Ref.Repair();
+                Player.Vehicle.Ref.IsInvincible = true;
             }
 
             else if (wasActive)
             {
+                Player.Vehicle.Ref.IsInvincible = false;
+
                 extingusherPtx.Remove();
 
                 extinguisherSfx.Stop();

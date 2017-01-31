@@ -16,7 +16,7 @@ namespace AirSuperiority.ScriptBase.Helpers
         }
 
         /// <summary>
-        /// Toggle online DLC maps.
+        /// Get a random positon in the area.
         /// </summary>
         /// <param name="toggle"></param>
         public static Vector3 GetRandomPositionInArea(Vector3 min, Vector3 max)
@@ -26,6 +26,29 @@ namespace AirSuperiority.ScriptBase.Helpers
                 GetRandomBetween(min.Z, max.Z));
         }
 
+        public static bool IsBetween(float value, float min, float max)
+        {
+           return min > max ? (value > max && value < min) : (value < max && value > min);
+        }
+
+        /// <summary>
+        /// Is the position within the provided bounds?
+        /// </summary>
+        /// <param name="toggle"></param>
+        public static bool IsPositionInArea(Vector3 pos, Vector3 min, Vector3 max)
+        {
+            return IsBetween(pos.X, min.X, max.X) && 
+                IsBetween(pos.Y, min.Y, max.Y) && 
+                IsBetween(pos.Z, min.Z, max.Z);
+        }
+
+        public static void RequestPTFXAsset(string name)
+        {
+            if (!Function.Call<bool>(Hash.HAS_NAMED_PTFX_ASSET_LOADED, name))
+            {
+                Function.Call(Hash.REQUEST_NAMED_PTFX_ASSET, name);
+            }
+        }
 
         /// <summary>
         /// Toggle online DLC maps.

@@ -9,7 +9,7 @@ namespace AirSuperiority.ScriptBase.Extensions
     /// </summary>
     public class SpawnVelocityBooster : PlayerExtensionBase
     {
-        private const int TotalBoostTime = 5000;
+        private const int TotalBoostTime = 4000;
 
         private int boostEndTime = 0;
 
@@ -48,7 +48,7 @@ namespace AirSuperiority.ScriptBase.Extensions
 
                 else
                 {
-                    Player.Vehicle.Ref.ApplyForce(Player.Vehicle.Ref.ForwardVector * 2f);
+                    Player.Vehicle.Ref.ApplyForce(Player.Vehicle.Ref.ForwardVector * 1.024f);
                 }
             }
 

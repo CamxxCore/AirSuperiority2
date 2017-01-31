@@ -12,10 +12,6 @@ namespace AirSuperiority.ScriptBase.Entities
     {
         private bool fadingScreen = false;
 
-        private EngineExtinguisher extinguisher;
-
-        private IRFlareManager flareMgr;
-
         public LocalPlayer(ScriptThread thread) : base(thread)
         { }
 
@@ -34,7 +30,8 @@ namespace AirSuperiority.ScriptBase.Entities
 
             vehicle.LodDistance = 2000;
             vehicle.EngineRunning = true;
-            vehicle.MaxSpeed = 210;
+
+            vehicle.MaxSpeed = 320;
 
             Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, vehicle, true);
 
@@ -52,22 +49,25 @@ namespace AirSuperiority.ScriptBase.Entities
         {
             base.SetupExtensions();
 
-            CreateExtension(new SpawnVelocityBooster(BaseThread, this));
-            CreateExtension(new SpawnLerpingCamera(BaseThread, this));
-            CreateExtension(new PlayerHUDManager(BaseThread, this));
-            CreateExtension(flareMgr = new IRFlareManager(BaseThread, this));
-            CreateExtension(extinguisher = new EngineExtinguisher(BaseThread, this));
+            GetOrCreateExtension<SpawnVelocityBooster>();
+            GetOrCreateExtension<SpawnLerpingCamera>();
+            GetOrCreateExtension<PlayerHUDManager>();
+
         }
 
         public override void OnUpdate(int gameTime)
         {
             if (Game.IsControlJustPressed(0, Control.ScriptLB) || Game.IsControlJustPressed(0, (Control)48))
             {
+                var extinguisher = GetExtension<EngineExtinguisher>();
+
                 extinguisher.Start();
             }
 
             else if (Game.IsControlJustPressed(0, Control.ScriptRB) || Game.IsControlJustPressed(0, (Control)337))
             {
+                var flareMgr = GetExtension<IRFlareManager>();
+
                 flareMgr.Start();
             }
 

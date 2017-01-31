@@ -73,6 +73,8 @@ namespace AirSuperiority.ScriptBase.Entities
         public virtual void Create(LevelSpawn spawnPoint)
         {
             Info.Sess.State = PlayerState.Respawning;
+
+            ActiveTarget = null;
         }
 
         /// <summary>
@@ -80,8 +82,10 @@ namespace AirSuperiority.ScriptBase.Entities
         /// </summary>
         public virtual void SetupExtensions()
         {
-            CreateExtension(new RespawnManager(BaseThread, this));
-            CreateExtension(new LandingGearManager(BaseThread, this));
+            GetOrCreateExtension<IRFlareManager>();
+            GetOrCreateExtension<EngineExtinguisher>();
+            GetOrCreateExtension<RespawnManager>();
+            GetOrCreateExtension<LandingGearManager>();
         }
 
         /// <summary>
@@ -92,21 +96,38 @@ namespace AirSuperiority.ScriptBase.Entities
         /// <summary>
         /// Get a script extension attached to this player.
         /// </summary>
-        /// <param name="extension"></param>
-        public void CreateExtension(PlayerExtensionBase extension)
+        public T GetExtension<T>() where T : PlayerExtensionBase
         {
-            if (!Extensions.Contains(extension))
+            return Extensions.Get<T>();
+        }
+
+        /// <summary>
+        /// Add a new script extension for this player.
+        /// </summary>
+        /// <param name="extension"></param>
+        public void AddExtension(PlayerExtensionBase item)
+        {
+            if (!Extensions.Contains(item))
             {
-                Extensions.Add(extension);
+                Extensions.Add(item);
             }
         }
 
         /// <summary>
-        /// Get a script extension attached to this player.
+        /// Get a script extension attached to this player or create it if it doesn't exit.
         /// </summary>
-        public T GetExtension<T>() where T : PlayerExtensionBase, new()
+        public T GetOrCreateExtension<T>() where T : PlayerExtensionBase
         {
-            return Extensions.Get<T>();
+            var item = GetExtension<T>();
+
+            if (item == null)
+            {
+                item = (T)Activator.CreateInstance(typeof(T), BaseThread, this);
+
+                AddExtension(item);
+            }
+
+            return item;
         }
 
         /// <summary>
@@ -125,11 +146,26 @@ namespace AirSuperiority.ScriptBase.Entities
 
             // Aggregate dead/ alive events into a single event handler...
 
+            Vehicle.EnterWater += OnEnterWater;
+
             Vehicle.Alive += OnPlayerAlive;
 
             Vehicle.Undrivable += OnPlayerDead;
 
             Ped.ExitVehicle += OnPlayerDead;
+        }
+
+        private void OnEnterWater(IScriptEntity sender, ScriptEntityEventArgs args)
+        {
+            var position = Position;
+
+            if (Vehicle.Ref.Velocity.Length() > 30.0f)
+            {
+             
+                Function.Call(Hash.START_PARTICLE_FX_NON_LOOPED_AT_COORD, "scr_ojdg4_water_exp", position.X, position.Y, position.Z, 0.0, 0.0, 0.0, 3.0, 0, 0, 0);
+            }
+
+            Function.Call(Hash.ADD_EXPLOSION, position.X, position.Y, position.Z, (int)ExplosionType.Valkyrie, 10.0f, true, true, 1.4f);
         }
 
         /// <summary>
@@ -182,6 +218,11 @@ namespace AirSuperiority.ScriptBase.Entities
         /// <param name="target"></param>
         public void PersueTarget(Player target)
         {
+            if (Function.Call<bool>(Hash.GET_IS_TASK_ACTIVE, Ped.Ref, 484))
+            {
+                Ped.Ref.Task.ClearAll();
+            }
+
             Ped ped = target.Ped.Ref;
 
             Vector3 position = ped.Position;
@@ -192,7 +233,7 @@ namespace AirSuperiority.ScriptBase.Entities
                 target.Vehicle.Ref,
                 ped.Handle,
                 position.X, position.Y, position.Z,
-                (int) VehicleTaskType.CTaskVehicleAttack, 70.0, -1.0, 40.0f, 500, 100);
+                (int) VehicleTaskType.CTaskVehicleAttack, -1.0f, 8.0f, 30.0, 500, 50);
 
             ActiveTarget = target;
         }

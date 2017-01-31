@@ -16,12 +16,13 @@ namespace AirSuperiority.ScriptBase.Logic
         /// inside which AI players will choose to fly.
         /// Lower values make for a larger area.
         /// </summary>
-        private const float AIBoundsMultiplier = 0.4f;
+        private const float AIBoundsMultiplier = 0.69f;
 
         /// <summary>
         /// Multiplier that affects how close the spawn points are relative to the center of the map.
+        /// Lower values make for a larger area.
         /// </summary>
-        private const float SpawnDist = 0.2f;
+        private const float SpawnDist = 0.69f;
 
         /// <summary>
         /// Current level.
@@ -35,6 +36,14 @@ namespace AirSuperiority.ScriptBase.Logic
         public LevelManager(ScriptThread thread) : base(thread)
         {
             sessionMgr = thread.Get<SessionManager>();
+        }
+
+        private void SetupSpawnDist(ref LevelSpawn[] spawns, Vector3 center)
+        {
+            for (int i = 0; i < spawns.Length; i++)
+            {
+                spawns[i].Position = Vector3.Lerp(spawns[i].Position, center, SpawnDist);
+            }
         }
 
         /// <summary>
@@ -51,11 +60,17 @@ namespace AirSuperiority.ScriptBase.Logic
 
             if (map != null)
             {
+                var boundA = Vector3.Lerp(map.BoundsMin, map.MapCenter, SpawnDist);
+
+                var boundB = Vector3.Lerp(map.BoundsMax, map.MapCenter, SpawnDist);
+
                 var innerBoundA = Vector3.Lerp(map.BoundsMin, map.BoundsMax, AIBoundsMultiplier);
 
                 var innerBoundB = Vector3.Lerp(map.BoundsMin, map.BoundsMax, 1.0f - AIBoundsMultiplier);
 
                 var spawnPoints = GetSpawnsForLevel(map.LevelIndex);
+
+                SetupSpawnDist(ref spawnPoints, map.MapCenter);
 
                 level = new LevelInfo(map.FriendlyName,
                     map.LevelIndex,
@@ -126,6 +141,13 @@ namespace AirSuperiority.ScriptBase.Logic
             OnUnloadLevel();
 
             level = null;
+        }
+
+        public override void Dispose()
+        {
+            UnloadCurrentLevel();
+
+            base.Dispose();
         }
     }
 }

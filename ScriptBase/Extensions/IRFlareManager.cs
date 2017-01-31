@@ -37,7 +37,7 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// <summary>
         /// Frequency of flare drops (ms). <b>Default =</b> 250
         /// </summary>
-        public int FlareDropInterval { get; set; } = 80;
+        public int FlareDropInterval { get; set; } = 100;
 
         private Vehicle vehicle;
 
@@ -47,6 +47,8 @@ namespace AirSuperiority.ScriptBase.Extensions
         private int timeSinceLastDrop = 0;
 
         private bool bCooldownActive = false;
+
+        public bool CooldownActive { get { return bCooldownActive; } }
 
         private SequenceFlags sqFlags = SequenceFlags.NotRunning;
 
@@ -62,9 +64,7 @@ namespace AirSuperiority.ScriptBase.Extensions
         }
 
         public IRFlareManager(ScriptThread thread, Player player) : base(thread, player)
-        {
-
-        }
+        { }
 
         public override void OnPlayerAttached(Player player)
         {
@@ -75,6 +75,8 @@ namespace AirSuperiority.ScriptBase.Extensions
 
         private void Player_OnAlive(Player sender, EventArgs e)
         {
+            sequenceList.ForEach(x => x.RemoveAll());
+
             sequenceList.Clear();
 
             SetupWithVehicle(sender.Vehicle.Ref);
@@ -143,7 +145,7 @@ namespace AirSuperiority.ScriptBase.Extensions
 
             if (bCooldownActive && Game.GameTime - timeSinceLastDrop > MaxDropTime + CooldownTime)
             {
-                UI.Notify("IR flares available!");
+                UI.Notify("IR flares available.");
 
                 bCooldownActive = false;
             }

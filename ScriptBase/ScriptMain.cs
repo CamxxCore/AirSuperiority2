@@ -29,6 +29,8 @@ namespace AirSuperiority.ScriptBase
 
         private void PreInit()
         {
+            Utility.RequestPTFXAsset("scr_oddjobtraffickingair"); // for water explosions in Player class
+
             Game.Globals[4].SetInt(1); // disable respawn_controller
 
             Function.Call(Hash.TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME, "respawn_controller");
@@ -41,7 +43,7 @@ namespace AirSuperiority.ScriptBase
 
             MemoryAccess.PatchFlyingMusic();
 
-            //Utility.ToggleOnlineDLC(true);
+          //  Utility.ToggleOnlineDLC(true);
 
             inputMgr = new InputManager(this);
 
@@ -69,26 +71,30 @@ namespace AirSuperiority.ScriptBase
         {
             if (e.KeyCode == Keys.M)
             {
-                displayMgr.ShowWarningThisFrame("ENEMY LOCKING");
+                
+
+                //displayMgr.ShowWarningThisFrame("ENEMY LOCKING");
             }
 
             if (e.KeyCode == Keys.N)
             {
-              // Utility.FadeInScreen(1);
+                // Utility.FadeInScreen(1);
 
-               foreach (var vehicle in World.GetAllEntities())
+                foreach (var vehicle in World.GetAllEntities())
                 {
                     vehicle.Delete();
                 }
 
                 displayMgr.HideScoreboard();
 
-                sessionMgr.Initialize(0, 12, 2);        
+                sessionMgr.Initialize(0, 16, 2);        
             }
         }
 
         public override void OnUpdate(int gameTime)
         {
+            Function.Call(Hash.SET_PED_DENSITY_MULTIPLIER_THIS_FRAME, 0.0f);
+
             Function.Call(Hash.SET_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME, 0.0f);
 
             Function.Call(Hash.SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME, 0.0f);

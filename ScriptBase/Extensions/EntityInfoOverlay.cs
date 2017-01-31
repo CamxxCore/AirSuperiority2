@@ -80,7 +80,7 @@ namespace AirSuperiority.ScriptBase.Extensions
             var color = sessionMgr.GetTeamByIndex(Player.Info.Sess.TeamNum).TeamColor;
 
             DrawSquare(new Point(0, -32), color.ToSystemColor(),
-                string.Format("name: {0}", Player.Name), scale * 0.37f,
+                string.Format("{0} dist: {1} team: {2}", Player.Name, Player.Position.DistanceTo(Game.Player.Character.Position), Player.Info.Sess.TeamNum), scale * 0.37f,
                 dist > 0.42f,
                 dist > 0.58f);
 

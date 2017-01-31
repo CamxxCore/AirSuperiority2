@@ -150,11 +150,11 @@ namespace AirSuperiority.ScriptBase.Logic
         /// <param name="numPlayers"></param>
         public void Initialize(int levelIndex, int numPlayers, int numTeams)
         {
-            ScriptMain.DebugPrint("SessionManager.Initialize() - Initializing a new session with {0} players and {1} total teams.", numPlayers, numTeams);
+            ScriptMain.DebugPrint("Initializing a new session with {0} players and {1} total teams.", numPlayers, numTeams);
     
             levelMgr.DoLoadLevel(current.LevelIndex);
 
-            Game.Player.Teleport(levelMgr.Level.MapCenter, 0);
+           // Utility.FadeOutScreen(900);
 
             GetNewTeams(numTeams);
 
@@ -174,6 +174,8 @@ namespace AirSuperiority.ScriptBase.Logic
 
                 //ScriptMain.DebugPrint("Added a new player at slot '{0}' with name \"{1}\" teamIdx: {2}", i, player.Name, team.Index);
             }
+
+            Utility.FadeInScreen(700);
 
             sessionActive = true;
         }
@@ -197,6 +199,8 @@ namespace AirSuperiority.ScriptBase.Logic
 
                 player.SetupExtensions();
 
+                player.Ped.Ref.RelationshipGroup = team.RelationshipGroup;
+
                 return player;
             }
 
@@ -209,6 +213,8 @@ namespace AirSuperiority.ScriptBase.Logic
                 player.Create(levelMgr.GetSpawnPoint(team.Index));
 
                 player.SetupExtensions();
+
+                player.Ped.Ref.RelationshipGroup = team.RelationshipGroup;
 
                 return player;
             }    

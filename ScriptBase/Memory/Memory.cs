@@ -14,6 +14,8 @@ namespace AirSuperiority.ScriptBase.Memory
         static MemoryAccess()
         {
             flyingMusicFnAddr = new Pattern("\x73\x0A\xC7\x83\x00\x00\x00\x00\x00\x00\x00\x00\x48\x8B\xCB", "xxxx????????xxx").Get(-0x24);
+
+           // 89 45 67 45 1A FF patch create object
         }
 
         public static void PatchFlyingMusic()
