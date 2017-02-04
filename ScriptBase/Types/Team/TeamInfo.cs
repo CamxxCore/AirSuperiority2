@@ -1,19 +1,20 @@
 ﻿
 namespace AirSuperiority.ScriptBase.Types
 {
-    public class TeamInfo
+    /// <summary>
+    /// Class to hold base team infos (texture asset, relationship group etc.)
+    /// </summary>
+    public class TeamData
     {
         public int Index { get; private set; }
         public string FriendlyName { get; private set; }
-        public TeamColor TeamColor { get; private set; }
-        public TeamStatus Current { get; private set; }
+        public ActiveTeamInfo Current { get; private set; }
         public int RelationshipGroup { get; private set; }
 
-        public TeamInfo(int index, string name, TeamStatus info, int relationshipGroup)
+        public TeamData(int index, string name, ActiveTeamInfo info, int relationshipGroup)
         {
             Index = index;
             FriendlyName = name;
-            TeamColor = (TeamColor)index;
             Current = info;
             RelationshipGroup = relationshipGroup;
         }

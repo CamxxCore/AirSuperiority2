@@ -21,12 +21,13 @@ namespace AirSuperiority.ScriptBase.Logic
 
         private SessionInfo current;
 
-        private TeamInfo[] activeTeams = new TeamInfo[0];
+        private TeamData[] activeTeams;
 
         private LevelManager levelMgr;
 
         public SessionManager(ScriptThread thread) : base(thread)
         {
+            activeTeams = new TeamData[0];
             levelMgr = thread.Get<LevelManager>();
             SetupRelationshipGroups();
         }
@@ -78,25 +79,18 @@ namespace AirSuperiority.ScriptBase.Logic
         /// </summary>
         /// <param name="team"></param>
         /// <returns></returns>
-        public TeamInfo GetTeamByIndex(int teamIndex)
+        public TeamData GetTeamByIndex(int teamIndex)
         {
             if (teamIndex < 0 || teamIndex > activeTeams.Length)
                 throw new IndexOutOfRangeException("SessionManager.GetTeamByIndex(): No team with index '" + teamIndex + "'");
             return activeTeams[teamIndex];
         }
 
-        /// <summary>
-        /// Add score for the specified team.
-        /// </summary>
-        public void AddTeamScore(int teamIndex, int score)
-        {
-            activeTeams[teamIndex].Current.Score += score;
-        }
 
         /// <summary>
         /// Find the team with the least members.
         /// </summary>
-        public TeamInfo FindFreeTeam()
+        public TeamData FindFreeTeam()
         {
             int[] teamTotals = new int[activeTeams.Length];
 
@@ -109,9 +103,9 @@ namespace AirSuperiority.ScriptBase.Logic
         }
 
         /// <summary>
-        /// Scrap the current teams and get new ones.
+        /// Get new team data.
         /// </summary>
-        protected void GetNewTeams(int teamsCount)
+        protected void InitTeamConstantData(int teamsCount)
         {
             var metadata = Resources.GetMetaEntry<TeamAssetMetadata>("TeamInfo");
 
@@ -127,7 +121,7 @@ namespace AirSuperiority.ScriptBase.Logic
 
             Array.Clear(activeTeams, 0, activeTeams.Length);
             
-            activeTeams = new TeamInfo[teamsCount];
+            activeTeams = new TeamData[teamsCount];
 
             for (int i = 0; i < activeTeams.Length; i++)
             {
@@ -135,12 +129,20 @@ namespace AirSuperiority.ScriptBase.Logic
                 !previous.Any(z => z?.FriendlyName == m.FriendlyName) &&
                 !activeTeams.Any(y => y?.FriendlyName == m.FriendlyName)).GetRandomItem();
 
-                var team = new TeamInfo(i, foundTeam.FriendlyName, new TeamStatus(), rGroups[i]);
+                var team = new TeamData(i, foundTeam.FriendlyName, new ActiveTeamInfo(), rGroups[i]);
 
                 ui.SetTeamSlotFromMetadata(i, foundTeam);
 
                 activeTeams[i] = team;
             }
+        }
+
+        /// <summary>
+        /// Add score for the specified team.
+        /// </summary>
+        public void AddTeamScore(int teamIndex, int score)
+        {
+            activeTeams[teamIndex].Current.Score += score;
         }
 
         /// <summary>
@@ -154,21 +156,17 @@ namespace AirSuperiority.ScriptBase.Logic
     
             levelMgr.DoLoadLevel(current.LevelIndex);
 
-           // Utility.FadeOutScreen(900);
+            // Utility.FadeOutScreen(900);
 
-            GetNewTeams(numTeams);
+            InitTeamConstantData(numTeams);
 
-            current = new SessionInfo();
+            current = new SessionInfo(levelIndex, numPlayers);
 
-            current.LevelIndex = levelIndex;
-
-            current.Players = new SessionPlayer[numPlayers];
-            
             for (int i = 0; i < numPlayers; i++)
             {
-                TeamInfo team = FindFreeTeam();
+                TeamData team = FindFreeTeam();
 
-                Player player = CreatePlayer(i, team, i < 1);
+                Player player = CreatePlayer(i, team.Index, i < 1);
 
                 current.AddPlayer(i, team.Index, player);
 
@@ -187,43 +185,18 @@ namespace AirSuperiority.ScriptBase.Logic
         /// <param name="teamIndex"></param>
         /// <param name="bIsLocal"></param>
         /// <returns></returns>
-        private Player CreatePlayer(int playerIndex, TeamInfo team, bool bIsLocal)
+        private Player CreatePlayer(int playerIndex, int team, bool bIsLocal)
         {
-            if (bIsLocal)
-            {
-                var player = new LocalPlayer(BaseThread);
-
-                player.InitializeFrom(new PlayerInfo(Game.Player.Name, team.Index, Game.GameTime));
-
-                player.Create(levelMgr.GetSpawnPoint(team.Index));
-
-                player.SetupExtensions();
-
-                player.Ped.Ref.RelationshipGroup = team.RelationshipGroup;
-
-                return player;
-            }
-
-            else
-            {
-                var player = new AIPlayer(BaseThread);
-
-                player.InitializeFrom(new PlayerInfo(string.Format("aiplayer{0}", playerIndex), team.Index, Game.GameTime));
-
-                player.Create(levelMgr.GetSpawnPoint(team.Index));
-
-                player.SetupExtensions();
-
-                player.Ped.Ref.RelationshipGroup = team.RelationshipGroup;
-
-                return player;
-            }    
+            var player = bIsLocal ? 
+                new LocalPlayer(BaseThread).InitializeFrom(new PlayerInfo(Game.Player.Name, team, Game.GameTime)) : 
+                new AIPlayer(BaseThread).InitializeFrom(new PlayerInfo(string.Format("aiplayer{0}", playerIndex), team, Game.GameTime));
+            player.Create();
+            return player;
         }
 
         public override void Dispose()
         {
             rGroups.ForEach(x => World.RemoveRelationshipGroup(x));
-
             base.Dispose();
         }
     }

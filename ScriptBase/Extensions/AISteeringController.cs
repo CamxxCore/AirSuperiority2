@@ -23,6 +23,8 @@ namespace AirSuperiority.ScriptBase.Extensions
 
         private SessionManager sessionMgr;
 
+        private bool setBias = false;
+
         public AISteeringController(ScriptThread thread, Player player) : base(thread, player)
         {
             sessionMgr = thread.Get<SessionManager>();
@@ -37,21 +39,20 @@ namespace AirSuperiority.ScriptBase.Extensions
         public override void OnPlayerAttached(Player player)
         {
             Function.Call(Hash.STEER_UNLOCK_BIAS, player.Vehicle.Ref, true);
-
             base.OnPlayerAttached(player);
         }
 
         public override void OnUpdate(int gameTime)
         {
-            if (Player.Vehicle.Ref.IsDamaged) return;
+            if (Player.Vehicle.Ref.IsDamaged || Player.Vehicle.Ref.Health < 900) return;
 
             if (gameTime < steerBiasEndTime)
             {
-                if (Player.Vehicle.Ref.Velocity.Length() < 80.0f)
+                if (Player.Vehicle.Ref.Velocity.Length() < 80.0f && Player.Vehicle.Ref.HeightAboveGround > 100.0F)
                 {
-                    // ScriptMain.DebugPrint("set steer bias for " + Player.Name + " " + Player.Vehicle.Ref.Velocity.Length());
+                   // ScriptMain.DebugPrint("set steer bias for " + Player.Name + " " + Player.Vehicle.Ref.Velocity.Length());
 
-                    Player.Vehicle.Ref.ApplyForce(steerBias * 3.7f, new Vector3(Probability.GetBoolean(60.0f) ? 1.6f : -1.6f, 0, Probability.GetBoolean(50.0f) ? 1.0f : 0.0f));
+                    Player.Vehicle.Ref.ApplyForce(steerBias * 3.4f, new Vector3(Probability.GetBoolean(60.0f) ? 1.5f : -1.5f, Probability.GetBoolean(50.0f) ? 1.0f : 0.0f, 0));
                 }
             }
             else
@@ -62,23 +63,23 @@ namespace AirSuperiority.ScriptBase.Extensions
                 {
                     SessionPlayer otherPlayer = sessionMgr.Current.Players[x];
 
-                    if (Player == otherPlayer.EntityRef || Player.Info.Sess.TeamNum == otherPlayer.TeamIdx) continue;
-
-                    if (Player.Position.DistanceTo(otherPlayer.EntityRef.Position) < 350.0f ||
-                        Player.Vehicle.Ref.HeightAboveGround > 20.0f &&
-                         Probability.GetBoolean(0.7998f))
+                    if (Player != otherPlayer.EntityRef &&
+                        Player.Info.Sess.TeamNum != otherPlayer.TeamIdx &&
+                        Player.Position.DistanceTo(otherPlayer.EntityRef.Position) < 350.0f ||
+                        Probability.GetBoolean(0.7998f))
                     {
                         var otherHeading = otherPlayer.EntityRef.Vehicle.Ref.Heading;
 
-                        if (Utility.IsBetween(otherHeading, myHeading - 5.0f, myHeading + 5.0f))
+                        if (otherHeading.IsBetween(myHeading - 5.0f, myHeading + 5.0f))
                         {
-                            var direction = Vector3.Normalize(otherPlayer.EntityRef.Position - Player.Position);
+                            var dir = Vector3.Normalize(otherPlayer.EntityRef.Position - Player.Position);
 
-                            var dot = Vector3.Dot(direction, Player.Vehicle.Ref.ForwardVector);
+                            var dot = Vector3.Dot(dir, Player.Vehicle.Ref.ForwardVector);
 
                             if (dot < -0.1f)
                             {
                                 targettedWaitTime = gameTime + new Random().Next(800, 2000);
+                                setBias = true;
                             }
                         }
                     }
@@ -91,7 +92,7 @@ namespace AirSuperiority.ScriptBase.Extensions
                          targettedWaitTime = gameTime + new Random().Next(800, 2000);
                      }*/
 
-                if (gameTime > targettedWaitTime)
+                if (setBias && gameTime > targettedWaitTime)
                 {
                     Vector3 dir = Player.Vehicle.Ref.UpVector;
 
@@ -100,7 +101,7 @@ namespace AirSuperiority.ScriptBase.Extensions
                         dir = -dir;
                     }
 
-                    SetSteerBias(dir, new Random().Next(800, 12000));
+                    SetSteerBias(dir, new Random().Next(2000, 12000));
                 }
             }
 

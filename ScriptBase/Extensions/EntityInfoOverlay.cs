@@ -77,9 +77,9 @@ namespace AirSuperiority.ScriptBase.Extensions
 
             Function.Call(Hash.SET_DRAW_ORIGIN, pos.X, pos.Y, pos.Z, 0);
 
-            var color = sessionMgr.GetTeamByIndex(Player.Info.Sess.TeamNum).TeamColor;
+          //  var color = sessionMgr.GetTeamByIndex(Player.Info.Sess.TeamNum).TeamColor;
 
-            DrawSquare(new Point(0, -32), color.ToSystemColor(),
+            DrawSquare(new Point(0, -32), Color.Red,
                 string.Format("{0} dist: {1} team: {2}", Player.Name, Player.Position.DistanceTo(Game.Player.Character.Position), Player.Info.Sess.TeamNum), scale * 0.37f,
                 dist > 0.42f,
                 dist > 0.58f);

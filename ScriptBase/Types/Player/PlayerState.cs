@@ -10,7 +10,7 @@ namespace AirSuperiority.ScriptBase.Types
     {
         Playing = 0,
      //   Dead = 1,
-        Respawning = 2,
+        Dead = 2,
         Inactive = 3
     }
 }

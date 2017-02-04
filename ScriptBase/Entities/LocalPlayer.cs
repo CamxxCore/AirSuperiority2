@@ -2,6 +2,7 @@
 using AirSuperiority.ScriptBase.Types;
 using AirSuperiority.ScriptBase.Extensions;
 using AirSuperiority.ScriptBase.Helpers;
+using AirSuperiority.ScriptBase.Logic;
 using GTA;
 using GTA.Math;
 using GTA.Native;
@@ -15,9 +16,13 @@ namespace AirSuperiority.ScriptBase.Entities
         public LocalPlayer(ScriptThread thread) : base(thread)
         { }
 
-        public override void Create(LevelSpawn spawnPoint)
+        public override void Create()
         {
-            base.Create(spawnPoint);
+            base.Create();
+
+            var levelMgr = BaseThread.Get<LevelManager>();
+
+            LevelSpawn spawnPoint = levelMgr.GetSpawnPoint(Info.Sess.TeamNum);
 
             Vector3 position = Utility.EnsureValidSpawnPos(spawnPoint.Position);
 
@@ -31,7 +36,7 @@ namespace AirSuperiority.ScriptBase.Entities
             vehicle.LodDistance = 2000;
             vehicle.EngineRunning = true;
 
-            vehicle.MaxSpeed = 320;
+            vehicle.MaxSpeed = 320.0f;
 
             Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, vehicle, true);
 
@@ -52,7 +57,7 @@ namespace AirSuperiority.ScriptBase.Entities
             GetOrCreateExtension<SpawnVelocityBooster>();
             GetOrCreateExtension<SpawnLerpingCamera>();
             GetOrCreateExtension<PlayerHUDManager>();
-
+            GetOrCreateExtension<OffscreenTargetTracker>();
         }
 
         public override void OnUpdate(int gameTime)

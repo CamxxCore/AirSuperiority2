@@ -24,9 +24,20 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// </summary>
         private const int AIPlayerWaitTime = 1200;
 
+        /// <summary>
+        /// Duration of the fade out animation on respawning.
+        /// </summary>
         private const int FadeOutDuration = 600;
 
+        /// <summary>
+        /// Duration of the fade in animation on respawning.
+        /// </summary>
         private const int FadeInDuration = 600;
+
+        /// <summary>
+        /// Max time a player can be out of bounds before triggering a respawn.
+        /// </summary>
+        private const int OutOfBoundsDuration = 9000;
 
         private int respawnTriggerTime = 0;
 
@@ -55,13 +66,23 @@ namespace AirSuperiority.ScriptBase.Extensions
         {
             bIsLocal = player is LocalPlayer;
 
+          /*  if (bIsLocal && Player.Ped.Ref.IsDead)
+            {
+                Function.Call(Hash.RESURRECT_PED, Player.Ped.Ref);
+            }*/
+
             player.OnDead += OnPlayerDead;
 
-            Function.Call(Hash.RESURRECT_PED, player.Ped.Ref);
+            Function.Call(Hash._DISABLE_AUTOMATIC_RESPAWN, true);
 
             base.OnPlayerAttached(player);
         }
 
+        /// <summary>
+        /// Fired when the player has died.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void OnPlayerDead(Player sender, EventArgs e)
         {
             if (waitActive) return;
@@ -69,15 +90,11 @@ namespace AirSuperiority.ScriptBase.Extensions
 
             if (bIsLocal)
             {
-                Function.Call(Hash._DISABLE_AUTOMATIC_RESPAWN, true);
-
                 Function.Call(Hash.IGNORE_NEXT_RESTART, true);
 
                 Utility.FadeOutScreen(FadeOutDuration);
 
                 respawnTriggerTime = Game.GameTime + LocalPlayerWaitTime;
-
-                bOutOfBounds = false;
             }
 
             else
@@ -85,10 +102,17 @@ namespace AirSuperiority.ScriptBase.Extensions
                 respawnTriggerTime = Game.GameTime + AIPlayerWaitTime;
             }
 
+            bOutOfBounds = false;
+
             waitActive = true;
         }
 
-        public override void OnUpdate(int gameTime)
+        /// <summary>
+        /// Returns whether the player is within the level bounds.
+        /// </summary>
+        /// <param name="gameTime"></param>
+        /// <returns></returns>
+        private bool WorldPositionInLevelBoundsFrame(int gameTime)
         {
             if (!Utility.IsPositionInArea(Player.Position, levelMgr.Level.Bounds.Min, levelMgr.Level.Bounds.Max))
             {
@@ -107,21 +131,22 @@ namespace AirSuperiority.ScriptBase.Extensions
                 {
                     if (Game.GameTime - outOfBoundsTime > 3500)
                     {
-                        if (Game.GameTime - outOfBoundsTime > 9000)
+                        if (Game.GameTime - outOfBoundsTime > OutOfBoundsDuration)
                         {
                             Function.Call(Hash._STOP_SCREEN_EFFECT, "SwitchOpenMichaelIn");
 
                             var spawnPoint = levelMgr.GetSpawnPoint(Player.Info.Sess.TeamNum);
 
-                            Player.Create(spawnPoint);
+                            Player.Create();
                         }
 
                         else
                         {
                             if (bIsLocal)
                             {
-                                int secToRespawn = (9000 - (Game.GameTime - outOfBoundsTime)) / 1000;
-                                UI.ShowSubtitle("Time until respawn: " + secToRespawn.ToString());
+                                int secToRespawn = (OutOfBoundsDuration - (Game.GameTime - outOfBoundsTime)) / 1000;
+
+                                UI.ShowSubtitle("Time until respawn: " + secToRespawn.ToString(), 1);
                             }
                         }
                     }
@@ -131,6 +156,8 @@ namespace AirSuperiority.ScriptBase.Extensions
                         displayMgr.ShowWarningThisFrame("Leaving The Combat Area");
                     }
                 }
+
+                return false;
             }
 
             else
@@ -144,24 +171,36 @@ namespace AirSuperiority.ScriptBase.Extensions
 
                     bOutOfBounds = false;
                 }
-            }
 
-            if (waitActive && gameTime > respawnTriggerTime)
+                return true;
+            }
+        }
+
+        public override void OnUpdate(int gameTime)
+        {
+            Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
+
+            Function.Call(Hash.SET_FADE_IN_AFTER_LOAD, true);
+
+            WorldPositionInLevelBoundsFrame(gameTime);
+
+            if (waitActive && gameTime > respawnTriggerTime || Player.Info.Sess.State == PlayerState.Inactive)
             {
-                //ScriptMain.DebugPrint("Extensions.RespawnManager: Doing spawn for {0}... Player team index is {1}", Player.Name, Player.Info.Sess.TeamNum);
+                //ScriptMain.DebugPrint("Doing spawn for {0}... Player team index is {1}", Player.Name, Player.Info.Sess.TeamNum);
+
+                var spawnPoint = levelMgr.GetSpawnPoint(Player.Info.Sess.TeamNum);
 
                 if (bIsLocal)
                 {
                     Function.Call(Hash.RESURRECT_PED, Player.Ped.Ref);
 
                     Function.Call(Hash._RESET_LOCALPLAYER_STATE);
-
-                    Utility.FadeInScreen(FadeInDuration);
                 }
 
-                var spawnPoint = levelMgr.GetSpawnPoint(Player.Info.Sess.TeamNum);
+                Player.Create();
 
-                Player.Create(spawnPoint);
+                if (bIsLocal)
+                    Utility.FadeInScreen(FadeInDuration);
 
                 waitActive = false;
             }

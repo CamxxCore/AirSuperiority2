@@ -2,6 +2,7 @@
 using AirSuperiority.ScriptBase.Helpers;
 using AirSuperiority.ScriptBase.Types.Metadata;
 using GTA;
+using GTA.Math;
 using GTA.Native;
 
 namespace AirSuperiority.ScriptBase.Logic
@@ -105,7 +106,7 @@ namespace AirSuperiority.ScriptBase.Logic
             rankBar.Update();
 
             if (sessionMgr != null && sessionMgr.SessionActive)
-            {
+            {             
                 if (showScoreboard)
                 {
                     scoreboard.Draw();

@@ -6,9 +6,11 @@ using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.Windows.Forms;
 using AirSuperiority.Core;
+using AirSuperiority.Core.IO;
 using AirSuperiority.ScriptBase.Memory;
 using AirSuperiority.ScriptBase.Logic;
 using AirSuperiority.ScriptBase.Helpers;
+using System.Reflection;
 using GTA;
 using GTA.Native;
 
@@ -25,6 +27,10 @@ namespace AirSuperiority.ScriptBase
         {
             PreInit();
             KeyDown += OnKeyDown;
+            inputMgr = new InputManager(this);
+            levelMgr = new LevelManager(this);
+            sessionMgr = new SessionManager(this);
+            displayMgr = new DisplayManager(this);
         }
 
         private void PreInit()
@@ -44,14 +50,6 @@ namespace AirSuperiority.ScriptBase
             MemoryAccess.PatchFlyingMusic();
 
           //  Utility.ToggleOnlineDLC(true);
-
-            inputMgr = new InputManager(this);
-
-            levelMgr = new LevelManager(this);
-
-            sessionMgr = new SessionManager(this);
-
-            displayMgr = new DisplayManager(this);
         }
 
         /// <summary>
@@ -71,7 +69,13 @@ namespace AirSuperiority.ScriptBase
         {
             if (e.KeyCode == Keys.M)
             {
-                
+                var stream = new EncryptedFileStream("file.bin");
+
+                stream.WriteValueAsync("df", 55);
+
+                var result = stream.ReadValueAsync("df");
+
+                UI.ShowSubtitle(result.Result.ToString());
 
                 //displayMgr.ShowWarningThisFrame("ENEMY LOCKING");
             }
@@ -87,7 +91,7 @@ namespace AirSuperiority.ScriptBase
 
                 displayMgr.HideScoreboard();
 
-                sessionMgr.Initialize(0, 16, 2);        
+                sessionMgr.Initialize(0, 26, 2);        
             }
         }
 

@@ -36,9 +36,7 @@ namespace AirSuperiority.ScriptBase.Helpers
 
             lastCheckedTime = Environment.TickCount;
 
-            int rdMax = (int)(chance * 1000.0f);
-
-            return new Random(seed).Next(0, 1000) < rdMax;
+            return new Random(seed).Next(0, 1000) < (int)(chance * 1000.0f);
         }
     }
 }

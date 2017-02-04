@@ -26,9 +26,31 @@ namespace AirSuperiority.ScriptBase.Helpers
                 GetRandomBetween(min.Z, max.Z));
         }
 
-        public static bool IsBetween(float value, float min, float max)
+        public static bool IsBetween(this float value, float min, float max)
         {
-           return min > max ? (value > max && value < min) : (value < max && value > min);
+            return min > max ? (value < min && value > max) : (value > min && value < max);
+        }
+
+        public static double ToRadians(this float val)
+        {
+            return (Math.PI / 180) * val;
+        }
+
+        public static float HeadingTo(this Vector3 start, Vector3 end)
+        {
+            return Function.Call<float>(Hash.GET_HEADING_FROM_VECTOR_2D, end.X - start.X, end.Y - start.Y);
+        }
+
+        public static Vector3 RotationToDirection(Vector3 Rotation)
+        {
+            double rotZ = Rotation.Z.ToRadians();
+            double rotX = Rotation.X.ToRadians();
+            double multiXY = Math.Abs(Convert.ToDouble(Math.Cos(rotX)));
+            Vector3 res = default(Vector3);
+            res.X = (float)(Convert.ToDouble(-Math.Sin(rotZ)) * multiXY);
+            res.Y = (float)(Convert.ToDouble(Math.Cos(rotZ)) * multiXY);
+            res.Z = (float)(Convert.ToDouble(Math.Sin(rotX)));
+            return res;
         }
 
         /// <summary>
@@ -166,7 +188,7 @@ namespace AirSuperiority.ScriptBase.Helpers
 
                 var pos = position.Around(20 * i);
 
-                if (!Function.Call<bool>(Hash.IS_POINT_OBSCURED_BY_A_MISSION_ENTITY, pos.X, pos.Y, pos.Z, 10f, 10f, 10f, 0))
+                if (!Function.Call<bool>(Hash.IS_POINT_OBSCURED_BY_A_MISSION_ENTITY, pos.X, pos.Y, pos.Z, 15f, 15f, 15f, 0))
                 {
                     return pos;
                 }

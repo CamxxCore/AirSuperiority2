@@ -66,15 +66,14 @@ namespace AirSuperiority.ScriptBase.Entities
         public Player InitializeFrom(PlayerInfo info)
         {
             Info = info;
-            Name = info.Name;
+            Name = Info.Name;   
             return this;
         }
 
-        public virtual void Create(LevelSpawn spawnPoint)
+        public virtual void Create()
         {
-            Info.Sess.State = PlayerState.Respawning;
-
             ActiveTarget = null;
+            Info.Sess.State = PlayerState.Playing;      
         }
 
         /// <summary>
@@ -132,11 +131,12 @@ namespace AirSuperiority.ScriptBase.Entities
 
         /// <summary>
         /// Assign a <see cref="ScriptPed"/> and <see cref="ScriptPlane"/> instance to this player.
+        /// (Should be called after setting up instances for each)
         /// </summary>
         /// <param name="ped"></param>
         /// <param name="vehicle"></param>
         /// <returns></returns>
-        public void Manage(Ped ped, Vehicle vehicle)
+        protected void Manage(Ped ped, Vehicle vehicle)
         {
             DisposePedAndVehicle();    
 
@@ -153,6 +153,8 @@ namespace AirSuperiority.ScriptBase.Entities
             Vehicle.Undrivable += OnPlayerDead;
 
             Ped.ExitVehicle += OnPlayerDead;
+
+            SetupExtensions();
         }
 
         private void OnEnterWater(IScriptEntity sender, ScriptEntityEventArgs args)
@@ -218,10 +220,10 @@ namespace AirSuperiority.ScriptBase.Entities
         /// <param name="target"></param>
         public void PersueTarget(Player target)
         {
-            if (Function.Call<bool>(Hash.GET_IS_TASK_ACTIVE, Ped.Ref, 484))
+         /*   if (Function.Call<bool>(Hash.GET_IS_TASK_ACTIVE, Ped.Ref, 484))
             {
                 Ped.Ref.Task.ClearAll();
-            }
+            }*/
 
             Ped ped = target.Ped.Ref;
 
@@ -233,7 +235,9 @@ namespace AirSuperiority.ScriptBase.Entities
                 target.Vehicle.Ref,
                 ped.Handle,
                 position.X, position.Y, position.Z,
-                (int) VehicleTaskType.CTaskVehicleAttack, -1.0f, 8.0f, 30.0, 500, 50);
+                (int) VehicleTaskType.CTaskVehicleAttack, 320f, -1.0f, 200.0, 500, 50);
+
+            Ped.Ref.AlwaysKeepTask = true;
 
             ActiveTarget = target;
         }
@@ -254,9 +258,7 @@ namespace AirSuperiority.ScriptBase.Entities
         private void OnPlayerAlive(IScriptEntity sender, ScriptEntityEventArgs args)
         {
             Info.Sess.LastSpawnedTime = args.GameTime;
-
             Info.Sess.State = PlayerState.Playing;
-
             OnAlive?.Invoke(this, args);
         }
 
@@ -266,6 +268,7 @@ namespace AirSuperiority.ScriptBase.Entities
         /// <param name="e"></param>
         private void OnPlayerDead(IScriptEntity sender, ScriptEntityEventArgs args)
         {
+            Info.Sess.State = PlayerState.Dead;
             OnDead?.Invoke(this, args);
         }
 

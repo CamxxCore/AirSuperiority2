@@ -31,6 +31,12 @@ namespace AirSuperiority.ScriptBase.Types
 
         public SessionPlayer[] Players { get; set; }
 
+        public SessionInfo(int levelIndex, int numPlayers)
+        {
+            LevelIndex = levelIndex;
+            Players = new SessionPlayer[numPlayers];
+        }
+
         public int NumPlayers
         {
             get

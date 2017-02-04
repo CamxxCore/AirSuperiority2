@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace AirSuperiority.ScriptBase.Types
 {
-    public class TeamStatus
+    /// <summary>
+    /// Class to hold info about a team that is likely to change.
+    /// </summary>
+    public class ActiveTeamInfo
     {
         public int Score { get; set; }
     }

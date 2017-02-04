@@ -32,6 +32,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>bin\x64\Debug\</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <PlatformTarget>x64</PlatformTarget>
@@ -44,6 +45,9 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -53,37 +57,55 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ScriptBase\Constants.cs" />
+    <Compile Include="Core\AssemblyInfo.cs" />
+    <Compile Include="Core\Game\IScriptUpdatable.cs" />
     <Compile Include="Core\Game\IScriptExtension.cs" />
+    <Compile Include="Core\Game\ScriptExtensionPool.cs" />
+    <Compile Include="Core\IO\EncryptedFileStream.cs" />
     <Compile Include="Core\IO\IXMLSimpleMetadata.cs" />
     <Compile Include="Core\Logger.cs" />
     <Compile Include="Core\IO\XMLAttributesCollection.cs" />
     <Compile Include="Core\IO\XMLSimpleParser.cs" />
     <Compile Include="Core\Game\ScriptExtension.cs" />
-    <Compile Include="Core\Game\ScriptExtensionPool.cs" />
-    <Compile Include="Core\Game\ScriptEntityExtension.cs" />
     <Compile Include="Core\Game\ScriptComponent.cs" />
     <Compile Include="Core\Game\IScriptComponent.cs" />
     <Compile Include="Core\Game\ScriptPed.cs" />
     <Compile Include="Core\Game\ScriptPlane.cs" />
-    <Compile Include="Core\Game\ScriptEntityExtensionPool.cs" />
     <Compile Include="Core\Game\IScriptEntity.cs" />
-    <Compile Include="Core\Game\IScriptEntityExtension.cs" />
     <Compile Include="Core\Game\ScriptEntity.cs" />
     <Compile Include="Core\Game\ScriptThread.cs" />
     <Compile Include="Core\IO\XMLSimpleMetadata.cs" />
+    <Compile Include="LiveStats\LiveStatsManager.cs" />
+    <Compile Include="LiveStats\WCFSingleton.cs" />
+    <Compile Include="ScriptBase\Extensions\AISteeringController.cs" />
+    <Compile Include="ScriptBase\Extensions\PlayerHUDManager.cs" />
+    <Compile Include="ScriptBase\Helpers\FighterDisplay.cs" />
+    <Compile Include="ScriptBase\Extensions\OffscreenTargetTracker.cs" />
+    <Compile Include="ScriptBase\Helpers\Sprite.cs" />
+    <Compile Include="ScriptBase\Memory\Memory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Game\ScriptEntityEventArgs.cs" />
-    <Compile Include="ScriptBase\Entities\ManagedFighter.cs" />
-    <Compile Include="ScriptBase\Entities\ManagedPed.cs" />
-    <Compile Include="ScriptBase\Extensions\AIHandler.cs" />
+    <Compile Include="ScriptBase\Constants.cs" />
+    <Compile Include="ScriptBase\Entities\AIPlayer.cs" />
+    <Compile Include="ScriptBase\Entities\IPlayer.cs" />
+    <Compile Include="ScriptBase\Entities\LocalPlayer.cs" />
+    <Compile Include="ScriptBase\Extensions\Base\IPlayerExtensionBase.cs" />
+    <Compile Include="ScriptBase\Extensions\Base\PlayerExtensionBase.cs" />
+    <Compile Include="ScriptBase\Extensions\Base\PlayerExtensionPool.cs" />
+    <Compile Include="ScriptBase\Extensions\EntityInfoOverlay.cs" />
+    <Compile Include="ScriptBase\Extensions\PilotAIController.cs" />
     <Compile Include="ScriptBase\Extensions\EngineExtinguisher.cs" />
-    <Compile Include="ScriptBase\Extensions\SpawnBooster.cs" />
-    <Compile Include="ScriptBase\Extensions\SpawnCamera.cs" />
+    <Compile Include="ScriptBase\Extensions\LandingGearManager.cs" />
+    <Compile Include="ScriptBase\Extensions\RespawnManager.cs" />
+    <Compile Include="ScriptBase\Extensions\SpawnVelocityBooster.cs" />
+    <Compile Include="ScriptBase\Extensions\SpawnLerpingCamera.cs" />
     <Compile Include="ScriptBase\Extensions\IRFlareManager.cs" />
-    <Compile Include="ScriptBase\Entities\PlayerParticipant.cs" />
+    <Compile Include="ScriptBase\Entities\Player.cs" />
+    <Compile Include="ScriptBase\Helpers\CodeTimer.cs" />
+    <Compile Include="ScriptBase\Helpers\DebugOutput.cs" />
     <Compile Include="ScriptBase\Helpers\Gamepad\GamepadInterface.cs" />
     <Compile Include="ScriptBase\Helpers\ManagedScaleform.cs" />
+    <Compile Include="ScriptBase\Helpers\Probability.cs" />
     <Compile Include="ScriptBase\Helpers\Scaleform\Leaderboard.cs" />
     <Compile Include="ScriptBase\Helpers\TeamScoreboard.cs" />
     <Compile Include="ScriptBase\Helpers\Extensions.cs" />
@@ -96,9 +118,15 @@
     <Compile Include="ScriptBase\Logic\InputManager.cs" />
     <Compile Include="ScriptBase\Helpers\Gamepad\Events\TriggerChangedEventArgs.cs" />
     <Compile Include="ScriptBase\Helpers\LoopedParticle.cs" />
+    <Compile Include="ScriptBase\Memory\Pattern.cs" />
+    <Compile Include="ScriptBase\Memory\Win32Native.cs" />
     <Compile Include="ScriptBase\Resources.cs" />
-    <Compile Include="ScriptBase\Main.cs" />
+    <Compile Include="ScriptBase\ScriptMain.cs" />
     <Compile Include="ScriptBase\Types.cs" />
+    <Compile Include="ScriptBase\Types\AI\AIState.cs" />
+    <Compile Include="ScriptBase\Types\AI\AIStatus.cs" />
+    <Compile Include="ScriptBase\Types\CBuildingWrapped.cs" />
+    <Compile Include="ScriptBase\Types\CMatrix.cs" />
     <Compile Include="ScriptBase\Types\Level\LevelBounds.cs" />
     <Compile Include="ScriptBase\Types\Level\LevelInfo.cs" />
     <Compile Include="ScriptBase\Types\Level\LevelSpawn.cs" />
@@ -116,6 +144,7 @@
     <Compile Include="ScriptBase\Types\Team\TeamInfo.cs" />
     <Compile Include="ScriptBase\Types\Team\TeamColor.cs" />
     <Compile Include="ScriptBase\Types\Team\TeamStatus.cs" />
+    <Compile Include="ScriptBase\Types\VehicleTaskType.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

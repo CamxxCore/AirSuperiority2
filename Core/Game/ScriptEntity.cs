@@ -168,5 +168,10 @@ namespace AirSuperiority.Core
 
             Ref.Delete();
         }
+
+        public static implicit operator Entity(ScriptEntity<T> e)  // implicit conversion ScriptEntity <-> Entity
+        {
+            return e.Ref;
+        }
     }
 }

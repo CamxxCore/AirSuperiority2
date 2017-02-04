@@ -20,12 +20,28 @@ namespace AirSuperiority.ScriptBase.Extensions
         private AIState state;
 
         private SessionManager sessionMgr;
-
         private LevelManager levelMgr;
-
         private IRFlareManager flareMgr;
 
         private int attackStartedTime = 0;
+
+        private int lastShotAtTime = 0;
+
+        private Random random = new Random();
+
+        private Vector3 destination;
+
+        class AITarget
+        {
+            public Player Player;
+            public float Distance;
+
+            public AITarget(Player player, float distance)
+            {
+                Player = player;
+                Distance = distance;
+            }
+        }
 
         public PilotAIController(ScriptThread thread, Player player) : base(thread, player)
         {
@@ -40,153 +56,127 @@ namespace AirSuperiority.ScriptBase.Extensions
             base.OnPlayerAttached(player);
         }
 
+        private void SetRandomDestination()
+        {
+            destination = Utility.GetRandomPositionInArea(levelMgr.Level.AIBounds.Min, levelMgr.Level.AIBounds.Max);
+
+            Function.Call(Hash.TASK_PLANE_MISSION,
+                           Player.Ped.Ref,
+                           Player.Vehicle.Ref,
+                           0,
+                           0,
+                           destination.X, destination.Y, destination.Z,
+                           6, 309.0, 26.0f, 200.0, 500.0, 20.0);
+        }
+
         public override void OnUpdate(int gameTime)
         {
             base.OnUpdate(gameTime);
 
-            var pos = Player.Position;
+            var position = Player.Position;
 
-            if (pos.DistanceTo(Game.Player.Character.Position) < 500.0f && 
-                Function.Call<bool>(Hash.IS_OBJECT_NEAR_POINT, 0x9A3207B7, pos.X, pos.Y, pos.Z, 50.0f) && 
+            if (Function.Call<bool>(Hash.IS_OBJECT_NEAR_POINT, 0x9A3207B7, position.X, position.Y, position.Z, (float)random.Next(50, 200)) &&
+                position.DistanceTo(GameplayCamera.Position) < 500.0f &&
+                Probability.GetBoolean(0.0015f) &&
                 !flareMgr.CooldownActive)
             {
                 flareMgr.Start();
             }
 
-            if (gameTime > state.NextDecisionTime && !Player.Ped.Ref.IsDead)
-            {                                           
-                findPlayer:
-
-                if (Player.ActiveTarget == null || Game.GameTime - attackStartedTime > 60000)
+            if (gameTime > state.NextDecisionTime)
+            {
+                // If we arent chasing a target, they have moved too far away, or have been chasing a target for a set amount of time, make a new decision.
+                if (Player.ActiveTarget == null ||
+                    position.DistanceTo(Player.ActiveTarget.Position) > 1000.0f ||
+                    Game.GameTime - attackStartedTime > 30000)
                 {
-                    SessionPlayer otherPlayer = sessionMgr.Current.Players[0];
+                    var otherPlayer = sessionMgr.Current.Players[0];
 
-                    var dist = Player.Position.DistanceTo(otherPlayer.EntityRef.Position);
+                    float dist = Player.Position.DistanceTo(otherPlayer.EntityRef.Position);
 
-                    Tuple<SessionPlayer, float> nearbyPlayer = new Tuple<SessionPlayer, float>(otherPlayer, dist);
+                    AITarget target = new AITarget(otherPlayer.EntityRef, dist);
 
-                    for (int x = 1; x < sessionMgr.Current.NumPlayers; x++)
+                    if (target.Distance > 1000.0f)
                     {
-                        otherPlayer = sessionMgr.Current.Players[x];
+                        target = null;
 
-                        if (Player == otherPlayer.EntityRef || Player.Info.Sess.TeamNum == otherPlayer.TeamIdx) continue;
-
-                        dist = Player.Position.DistanceTo(otherPlayer.EntityRef.Position);
-  
-                        if (dist < 1000.0f)
-                        {                           
-                            if (dist < nearbyPlayer.Item2)
-                            {
-                                nearbyPlayer = new Tuple<SessionPlayer, float>(otherPlayer, dist);
-                            }
-                        }       
-                    }
-
-                    Player.PersueTarget(nearbyPlayer.Item1.EntityRef);
-
-                   // ScriptMain.DebugPrint("PilotAIController: {0} chose to fight the nearby player {1}", Player.Name, otherPlayer.EntityRef.Name);
-
-                    state.Status = AIStatus.FightOther;
-
-                    state.SetNextDecisionTime(gameTime + new Random().Next(6000, 30000));
-
-                    attackStartedTime = Game.GameTime;
-                }
-
-                else
-                {
-                    var dist = Player.Position.DistanceTo(Player.ActiveTarget.Position);
-
-                    if (dist > 1000.0f)
-                   {
-                        Player.ClearActiveTarget();
-
-                        goto findPlayer;
-                    }
-
-                    var direction = Vector3.Normalize(Player.Position - Player.ActiveTarget.Position);
-
-                    if (dist < 300.0f && Vector3.Dot(direction, Player.ActiveTarget.Vehicle.Ref.ForwardVector) < -0.1f)
-                    {
-                        var p = Player.ActiveTarget.Position;
-
-                       /* if (Function.Call<bool>(Hash.GET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, outArg))
+                        for (int x = 1; x < sessionMgr.Current.NumPlayers; x++)
                         {
-                            var weaponHash = Function.Call<int>(Hash.GET_HASH_KEY, "vehicle_weapon_enemy_lazer");
+                            otherPlayer = sessionMgr.Current.Players[x];
 
-                            if (outArg.GetResult<int>() != weaponHash)
-                                Function.Call(Hash.SET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, weaponHash);
-                        }*/
+                            // We don't want ourselves, or any of our team members...
+                            if (Player == otherPlayer.EntityRef || Player.Info.Sess.TeamNum == otherPlayer.TeamIdx) continue;
 
-                        Function.Call(Hash.SET_VEHICLE_SHOOT_AT_TARGET, Player.Ped.Ref, Player.ActiveTarget.Vehicle.Ref, p.X, p.Y, p.Z);
+                            // Get the distance between us and the potential target..
+                            dist = position.DistanceTo(otherPlayer.EntityRef.Position);
 
-                  //      ScriptMain.DebugPrint("Shoot at target (" + Player.Name + " > " + Player.ActiveTarget.Name + ")");
-
+                            // If they are closer than any of the previous candidates, add them as the best candidate.
+                            if (dist < 1000.0f && (target == null || dist < target.Distance))
+                            {
+                                target = new AITarget(otherPlayer.EntityRef, dist);
+                            }
+                        }
                     }
 
-             /*       var targetPos = Player.ActiveTarget.Position;
+                    // we found a target, change our status to fighting
+                    if (target != null && Player.Info.Sess.TeamNum != target.Player.Info.Sess.TeamNum)
+                    {
+                        Player.PersueTarget(target.Player);
 
-                    var position = Player.Position;
+                        ScriptMain.DebugPrint("PilotAIController: {0} chose to fight the nearby player {1}", Player.Name, target.Player.Name);
 
-                    var currentHeading = Player.Vehicle.Ref.Heading;
+                        state.Status = AIStatus.FightOther;
 
-                    float desiredHeading = Function.Call<float>(Hash.GET_HEADING_FROM_VECTOR_2D, targetPos.X - position.X, targetPos.Y - position.Y);
+                        attackStartedTime = Game.GameTime;
+                    }
 
-                    float diff = currentHeading > desiredHeading ?
-                        currentHeading - (currentHeading - desiredHeading) :
-                        currentHeading + (desiredHeading - currentHeading);
+                    // no target found ): We will just fly randomly..
+                    else
+                    {
+                        SetRandomDestination();
 
-                    var steerBias = diff / 360.0f;
-
-                    Function.Call(Hash.SET_VEHICLE_STEER_BIAS, Player.Vehicle.Ref, steerBias);*/
-
-                    /* else if (dist > 200.0f)
-                     {
-                         var outArg = new OutputArgument();
-                         if (Function.Call<bool>(Hash.GET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, outArg))
-                         {
-                             var weaponHash = Function.Call<int>(Hash.GET_HASH_KEY, "vehicle_weapon_plane_rocket");
-
-                             if (outArg.GetResult<int>() != weaponHash)
-                                 Function.Call(Hash.SET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, weaponHash);
-                         }
-                     }
-
-                     else
-                     {
-                         var outArg = new OutputArgument();
-                         if (Function.Call<bool>(Hash.GET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, outArg))
-                         {
-                             var weaponHash = Function.Call<int>(Hash.GET_HASH_KEY, "vehicle_weapon_enemy_lazer");
-
-                             if (outArg.GetResult<int>() != weaponHash)
-                                 Function.Call(Hash.SET_CURRENT_PED_VEHICLE_WEAPON, Player.Ped.Ref, weaponHash);
-                         }
-                     }*/
-                }
-                // couldn't find an active target. so we'll just fly randomly..
-
-                if (state.Status != AIStatus.RandomFlight)
-                {
-                    var position = Utility.GetRandomPositionInArea(levelMgr.Level.AIBounds.Min, levelMgr.Level.AIBounds.Max);
-
-                    Function.Call(Hash.TASK_PLANE_MISSION,
-                                   Player.Ped.Ref,
-                                   Player.Vehicle.Ref,
-                                   0,
-                                   0,
-                                   position.X, position.Y, position.Z,
-                                   6, 60.0, 26.0f, 30.0, 500.0, 20.0);
-
-                    state.Status = AIStatus.RandomFlight;
-
-                     //  ScriptMain.DebugPrint("PilotAIController: {0} chose to fly randomly.", Player.Info.Name);
+                        state.Status = AIStatus.RandomFlight;
+                    }
                 }
 
-
-                state.SetNextDecisionTime(gameTime + new Random().Next(1000, 3000));
+                state.SetNextDecisionTime(gameTime + random.Next(10000, 30000));
             }
 
+            switch (state.Status)
+            {
+                case AIStatus.FightOther:
+                    {
+                        if (gameTime - lastShotAtTime > 1600 && Player.ActiveTarget != null)
+                        {
+                            var direction = Vector3.Normalize(Player.ActiveTarget.Position - position);
+
+                            var p = Player.ActiveTarget.Position;
+
+                            if (position.DistanceTo(p) < 200.0f && Vector3.Dot(direction, Utility.RotationToDirection(Player.Vehicle.Ref.Rotation)) > 0.1f)
+                            {
+                                Function.Call(Hash.SET_VEHICLE_SHOOT_AT_TARGET, Player.Ped.Ref, Player.ActiveTarget.Vehicle.Ref, p.X, p.Y, p.Z);
+
+                                ScriptMain.DebugPrint("Shoot at target (" + Player.Name + " > " + Player.ActiveTarget.Name + ")");
+
+                                lastShotAtTime = gameTime;
+                            }
+                        }
+
+                        break;
+                    }
+
+                case AIStatus.RandomFlight:
+                    {
+                        if (position.DistanceTo(destination) < 15.0f)
+                        {
+                            SetRandomDestination();
+
+                            ScriptMain.DebugPrint("Set new random destination for " + Player.Name);
+                        }
+
+                        break;
+                    }
+            }
         }
     }
 }
