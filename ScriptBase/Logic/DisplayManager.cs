@@ -1,18 +1,13 @@
 ﻿using AirSuperiority.Core;
 using AirSuperiority.ScriptBase.Helpers;
-using AirSuperiority.ScriptBase.Types.Metadata;
+using AirSuperiority.ScriptBase.Types;
 using GTA;
-using GTA.Math;
 using GTA.Native;
 
 namespace AirSuperiority.ScriptBase.Logic
 {
     public class DisplayManager : ScriptExtension
     {
-        private InputManager inputMgr;
-
-        private SessionManager sessionMgr;
-
         private bool showLeaderboard = false;
 
         private bool showScoreboard = false;
@@ -27,11 +22,7 @@ namespace AirSuperiority.ScriptBase.Logic
 
         private FighterDisplay fighterHUD = new FighterDisplay();
 
-        public DisplayManager(ScriptThread thread) : base(thread)
-        {
-            inputMgr = thread.Get<InputManager>();
-            sessionMgr = thread.Get<SessionManager>();
-        }
+        private KillPopup killPopup = new KillPopup();
 
         /// <summary>
         /// Show the leaderboard.
@@ -62,6 +53,15 @@ namespace AirSuperiority.ScriptBase.Logic
             fighterHUD.ShowWarning(text);
         }
 
+        public void ShowKillPopup(string name, int teamIndex)
+        {
+            var teamInfo = ScriptThread.GetOrAddExtension<SessionManager>().GetTeamByIndex(teamIndex);
+
+            killPopup.SetPlayerInfo(name, teamInfo.Asset.SecondaryAssetPath, ((TeamColor)teamIndex).ToSystemColor());
+
+            killPopup.ShowTimed();
+        }
+
         /// <summary>
         /// Show the rank bar with the given arguments.
         /// </summary>
@@ -77,13 +77,23 @@ namespace AirSuperiority.ScriptBase.Logic
         }
 
         /// <summary>
-        /// Update team scoreboard from a metadata entry.
+        /// Update a team scoreboard slot.
         /// </summary>
         /// <param name="slotIdx"></param>
         /// <param name="metadata"></param>
-        public void SetTeamSlotFromMetadata(int slotIdx, TeamAssetMetadata metadata)
+        public void SetTeamScore(int slotIdx, int score)
         {
-            scoreboard.SetTeamAsset(slotIdx, metadata.FriendlyName, metadata.ImageAsset);
+            scoreboard.SetTeamScore(slotIdx, score);
+        }
+
+        /// <summary>
+        /// Setup a team scoreboard slot.
+        /// </summary>
+        /// <param name="slotIdx"></param>
+        /// <param name="metadata"></param>
+        public void SetupTeamSlot(int slotIdx, string teamTeam, string imageAssetPath)
+        {
+            scoreboard.SetTeamAsset(slotIdx, teamTeam, imageAssetPath);
         }
 
         /// <summary>
@@ -101,37 +111,42 @@ namespace AirSuperiority.ScriptBase.Logic
         /// <param name="gameTime"></param>
         public override void OnUpdate(int gameTime)
         {
-            dbgOutput.Update();
-
-            rankBar.Update();
-
-            if (sessionMgr != null && sessionMgr.SessionActive)
-            {             
-                if (showScoreboard)
-                {
-                    scoreboard.Draw();
-                }
-            }
-
-            if (showLeaderboard)
+            if (!Game.IsScreenFadedOut)
             {
-                Function.Call(Hash.HIDE_HUD_AND_RADAR_THIS_FRAME);
+                dbgOutput.Update();
 
-                leaderboard.Draw();
+                rankBar.Update();
 
-                if (Game.IsDisabledControlJustPressed(0, (Control)202) || Game.IsDisabledControlJustPressed(0, (Control)238))
+                if (ScriptThread.GetVar<bool>("scr_activesession").Value)
                 {
-                    showLeaderboard = false;
+                    if (showScoreboard)
+                    {
+                        scoreboard.Draw();
+                    }
+
+                    killPopup.Draw();
                 }
 
-                if (Game.IsDisabledControlJustPressed(0, (Control)241) || Game.IsDisabledControlJustPressed(0, (Control)188))
-                {
-                    leaderboard.HandleScrollUp();
-                }
+                if (showLeaderboard)
+                {                   
+                    Function.Call(Hash.HIDE_HUD_AND_RADAR_THIS_FRAME);
 
-                else if (Game.IsDisabledControlJustPressed(0, (Control)242) || Game.IsDisabledControlJustPressed(0, (Control)187))
-                {
-                    leaderboard.HandleScrollDown();
+                    leaderboard.Draw();
+
+                    if (Game.IsDisabledControlJustPressed(0, (Control)202) || Game.IsDisabledControlJustPressed(0, (Control)238))
+                    {
+                        showLeaderboard = false;
+                    }
+
+                    if (Game.IsDisabledControlJustPressed(0, (Control)241) || Game.IsDisabledControlJustPressed(0, (Control)188))
+                    {
+                        leaderboard.HandleScrollUp();
+                    }
+
+                    else if (Game.IsDisabledControlJustPressed(0, (Control)242) || Game.IsDisabledControlJustPressed(0, (Control)187))
+                    {
+                        leaderboard.HandleScrollDown();
+                    }
                 }
             }
 

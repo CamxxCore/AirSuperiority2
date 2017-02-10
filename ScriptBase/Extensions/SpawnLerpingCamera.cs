@@ -1,5 +1,4 @@
-﻿using AirSuperiority.Core;
-using GTA;
+﻿using GTA;
 using GTA.Math;
 using GTA.Native;
 using Player = AirSuperiority.ScriptBase.Entities.Player;
@@ -20,7 +19,7 @@ namespace AirSuperiority.ScriptBase.Extensions
             get { return mainCamera.IsActive; }
         }
 
-        public SpawnLerpingCamera(ScriptThread thread, Player player) : base(thread, player)
+        public SpawnLerpingCamera(Player player) : base(player)
         { }
 
         public override void OnPlayerAttached(Player player)
@@ -37,15 +36,20 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// <param name="args"></param>
         private void OnEntityAlive(object sender, System.EventArgs args)
         {
-            mainCamera.Position = Player.Vehicle.Ref.GetOffsetInWorldCoords(new Vector3(-2f, -2f, 36f));
+            mainCamera.Position = Player.Vehicle.Ref.GetOffsetInWorldCoords(new Vector3(-2f, -75f, 110f));
 
-            mainCamera.Rotation = Player.Vehicle.Ref.Rotation + new Vector3(-90, 0, 0);
+            mainCamera.Rotation = Player.Vehicle.Ref.Rotation + new Vector3(-60, 0, 0);
 
             Start();
         }
 
         public override void OnUpdate(int gameTime)
-        {          
+        {
+            if (World.RenderingCamera.Handle == mainCamera.Handle)
+            {
+                Game.DisableAllControlsThisFrame(0);
+            }
+
             base.OnUpdate(gameTime);
         }
 
@@ -64,10 +68,9 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// </summary>
         public void Stop()
         {
-            World.RenderingCamera = null;
-
             mainCamera.IsActive = false;
-   
+
+            World.RenderingCamera = null;
         }
 
         /// <summary>

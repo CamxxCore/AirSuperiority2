@@ -1,9 +1,10 @@
-﻿using AirSuperiority.Core;
+﻿using System;
+using AirSuperiority.Core;
 using AirSuperiority.ScriptBase.Entities;
 
 namespace AirSuperiority.ScriptBase.Extensions
 {
-    public abstract class PlayerExtensionBase : ScriptExtension, IPlayerExtensionBase
+    public abstract class PlayerExtensionBase : IDisposable, IScriptUpdatable, IPlayerExtensionBase
     {
         /// <summary>
         /// Base player associated with this extension.
@@ -24,7 +25,7 @@ namespace AirSuperiority.ScriptBase.Extensions
             }
         }
 
-        public PlayerExtensionBase(ScriptThread thread, Player player) : base(thread)
+        public PlayerExtensionBase(Player player)
         {
             Player = player;
         }
@@ -45,9 +46,10 @@ namespace AirSuperiority.ScriptBase.Extensions
         public virtual void OnPlayerDetached(Player player)
         { }
 
-        public override void Dispose()
-        {
-            base.Dispose();
-        }
+        public virtual void OnUpdate(int gameTime)
+        { }
+
+        public virtual void Dispose()
+        { }
     }
 }

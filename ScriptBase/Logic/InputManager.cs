@@ -7,12 +7,10 @@ namespace AirSuperiority.ScriptBase.Logic
     /// <summary>
     /// Class to handle global game input.
     /// </summary>
-    public class InputManager : ScriptExtension
+    /// TODO: Remove this class because its not really needed?
+    public class InputManager : ScriptComponent
     {
         public GamepadInterface Gamepad { get; } = new GamepadInterface();
-
-        public InputManager(ScriptThread thread) : base(thread)
-        { }
 
         /// <summary>
         /// Update the class.

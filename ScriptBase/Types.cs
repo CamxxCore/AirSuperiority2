@@ -8,8 +8,6 @@ using GTA.Math;
 
 namespace AirSuperiority.ScriptBase
 {
-
-
     public struct UISpriteToggle
     {
         public string ActiveAsset;

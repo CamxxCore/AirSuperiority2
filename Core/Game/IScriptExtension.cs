@@ -9,11 +9,7 @@ namespace AirSuperiority.Core
     /// <summary>
     /// Represents an extension for a <see cref="ScriptThread"/>
     /// </summary>
-    interface IScriptExtension
+    public interface IScriptExtension
     {
-        /// <summary>
-        /// The base script thread this extension belongs to.
-        /// </summary>
-        ScriptThread BaseThread { get; }
     }
 }

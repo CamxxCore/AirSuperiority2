@@ -6,7 +6,7 @@ namespace AirSuperiority.Core
     /// <summary>
     /// Represents a game entity.
     /// </summary>
-    public abstract class ScriptEntity<T> : ScriptExtension, IScriptEntity where T : Entity
+    public abstract class ScriptEntity<T> : IDisposable, IScriptUpdatable, IScriptEntity where T : Entity
     {
         /// <summary>
         /// Base game entity reference.
@@ -86,19 +86,11 @@ namespace AirSuperiority.Core
         /// Initialize the class.
         /// </summary>
         /// <param name="baseRef"></param>
-        /// <param name="name"></param>
-        public ScriptEntity(ScriptThread thread, T baseRef, string name) : base(thread, name)
+        public ScriptEntity(T baseRef)
         {
             Ref = baseRef;
             createdTime = Game.GameTime;
         }
-
-        /// <summary>
-        /// Initialize the class.
-        /// </summary>
-        /// <param name="baseRef"></param>
-        public ScriptEntity(ScriptThread thread, T baseRef) : this(thread, baseRef, null)
-        { }
 
         /// <summary>
         /// Fired when the entity has died.
@@ -121,7 +113,7 @@ namespace AirSuperiority.Core
         /// <summary>
         /// Call this method each tick to update entity related information.
         /// </summary>
-        public override void OnUpdate(int gameTime)
+        public virtual void OnUpdate(int gameTime)
         {
             if (Ref.IsDead)
             {
@@ -167,6 +159,11 @@ namespace AirSuperiority.Core
             Ref.CurrentBlip?.Remove();
 
             Ref.Delete();
+        }
+
+        public virtual void Dispose()
+        {
+            Remove();
         }
 
         public static implicit operator Entity(ScriptEntity<T> e)  // implicit conversion ScriptEntity <-> Entity

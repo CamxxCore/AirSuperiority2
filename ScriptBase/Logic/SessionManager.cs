@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using AirSuperiority.Core;
+using AirSuperiority.ScriptBase.Entities;
+using AirSuperiority.ScriptBase.Helpers;
 using AirSuperiority.ScriptBase.Types;
 using AirSuperiority.ScriptBase.Types.Metadata;
-using AirSuperiority.ScriptBase.Helpers;
-using AirSuperiority.ScriptBase.Entities;
 using GTA;
 using GTA.Native;
 using Player = AirSuperiority.ScriptBase.Entities.Player;
@@ -17,20 +17,13 @@ namespace AirSuperiority.ScriptBase.Logic
     /// </summary>
     public class SessionManager : ScriptExtension
     {
-        private bool sessionActive = false;
-
         private SessionInfo current;
 
-        private TeamData[] activeTeams;
+        private List<int> rGroups;
 
-        private LevelManager levelMgr;
+        private TeamData[] activeTeams = new TeamData[0];
 
-        public SessionManager(ScriptThread thread) : base(thread)
-        {
-            activeTeams = new TeamData[0];
-            levelMgr = thread.Get<LevelManager>();
-            SetupRelationshipGroups();
-        }
+        private DisplayManager displayMgr;
 
         /// <summary>
         /// Instance of the active session.
@@ -43,28 +36,23 @@ namespace AirSuperiority.ScriptBase.Logic
             }
         }
 
-        /// <summary>
-        /// If the session is currently active.
-        /// </summary>
-        public bool SessionActive
+        public SessionManager()
         {
-            get
-            {
-                return sessionActive;
-            }
-        }
+            displayMgr = ScriptThread.GetOrAddExtension<DisplayManager>();
 
-        /// <summary>
-        /// Team- assigned relationship groups, as known to the game.
-        /// </summary>
-        private List<int> rGroups = Enumerable.Range(0, Constants.MaxConcurrentTeams)
-            .Select(i => World.AddRelationshipGroup(string.Format("team{0}", i))).ToList();
+            SetupRelationshipGroups();
+        }
 
         /// <summary>
         /// Setup world relationship groups.
         /// </summary>
         public void SetupRelationshipGroups()
         {
+            int maxTeams = ScriptThread.GetVar<int>("scr_maxteams").Value;
+
+            rGroups = Enumerable.Range(0, maxTeams)
+            .Select(i => World.AddRelationshipGroup(string.Format("team{0}", i))).ToList();
+
             foreach (int group in rGroups)
             {
                 foreach (int enemyGroup in rGroups.Where(x => x != group))
@@ -85,7 +73,6 @@ namespace AirSuperiority.ScriptBase.Logic
                 throw new IndexOutOfRangeException("SessionManager.GetTeamByIndex(): No team with index '" + teamIndex + "'");
             return activeTeams[teamIndex];
         }
-
 
         /// <summary>
         /// Find the team with the least members.
@@ -115,7 +102,7 @@ namespace AirSuperiority.ScriptBase.Logic
                     + teamsCount + " teams! Found " + metadata.Count() + " entries.");
             }
 
-            var ui = BaseThread.Get<DisplayManager>();
+            var ui = ScriptThread.GetOrAddExtension<DisplayManager>();
 
             var previous = activeTeams;
 
@@ -125,13 +112,13 @@ namespace AirSuperiority.ScriptBase.Logic
 
             for (int i = 0; i < activeTeams.Length; i++)
             {
-                var foundTeam = metadata.Where(m =>
+                var metaEntry = metadata.Where(m =>
                 !previous.Any(z => z?.FriendlyName == m.FriendlyName) &&
                 !activeTeams.Any(y => y?.FriendlyName == m.FriendlyName)).GetRandomItem();
 
-                var team = new TeamData(i, foundTeam.FriendlyName, new ActiveTeamInfo(), rGroups[i]);
+                var team = new TeamData(i, metaEntry.FriendlyName, new TeamTextureAsset(metaEntry.ImageAsset, metaEntry.AltImageAsset), rGroups[i]);
 
-                ui.SetTeamSlotFromMetadata(i, foundTeam);
+                ui.SetupTeamSlot(i, metaEntry.FriendlyName, metaEntry.ImageAsset);
 
                 activeTeams[i] = team;
             }
@@ -140,9 +127,10 @@ namespace AirSuperiority.ScriptBase.Logic
         /// <summary>
         /// Add score for the specified team.
         /// </summary>
-        public void AddTeamScore(int teamIndex, int score)
+        public void RegisterTeamScore(int teamIndex, int score)
         {
-            activeTeams[teamIndex].Current.Score += score;
+           var newScore = activeTeams[teamIndex].Current.Score += score;
+            displayMgr.SetTeamScore(teamIndex, newScore / 100);
         }
 
         /// <summary>
@@ -153,14 +141,14 @@ namespace AirSuperiority.ScriptBase.Logic
         public void Initialize(int levelIndex, int numPlayers, int numTeams)
         {
             ScriptMain.DebugPrint("Initializing a new session with {0} players and {1} total teams.", numPlayers, numTeams);
-    
-            levelMgr.DoLoadLevel(current.LevelIndex);
 
-            // Utility.FadeOutScreen(900);
+            LevelManager levelMgr = ScriptThread.GetOrAddExtension<LevelManager>();
 
             InitTeamConstantData(numTeams);
 
             current = new SessionInfo(levelIndex, numPlayers);
+
+            levelMgr.DoLoadLevel(current.LevelIndex);
 
             for (int i = 0; i < numPlayers; i++)
             {
@@ -168,14 +156,81 @@ namespace AirSuperiority.ScriptBase.Logic
 
                 Player player = CreatePlayer(i, team.Index, i < 1);
 
+                player.OnDead += OnPlayerDead;
+
                 current.AddPlayer(i, team.Index, player);
 
                 //ScriptMain.DebugPrint("Added a new player at slot '{0}' with name \"{1}\" teamIdx: {2}", i, player.Name, team.Index);
             }
 
-            Utility.FadeInScreen(700);
+            ScriptThread.SetVar("scr_activesession", true);
+        }
 
-            sessionActive = true;
+        private void OnPlayerDead(Player sender, EventArgs e)
+        {
+            sender.RegisterDeaths(1);
+
+            var scoreAmount = ScriptThread.GetVar<int>("scr_score_per_death");
+
+            RegisterTeamScore(sender.Info.Sess.TeamNum, scoreAmount.Value);
+
+            var attackerEnt = Function.Call<Entity>(CustomNative.GET_PED_SOURCE_OF_DEATH, sender.Ped.Ref);
+
+            if (attackerEnt != null)
+            {
+                ScriptMain.DebugPrint("OnPlayerDead: Found attacker entity.");
+
+                var inflictor = current.Players
+                    .FirstOrDefault(x => x.PlayerRef.Ped == attackerEnt || x.PlayerRef.Vehicle == attackerEnt);
+
+                if (inflictor.PlayerRef != null && sender.Info.Sess.TeamNum != inflictor.TeamIdx)
+                {
+                    ScriptMain.DebugPrint("OnPlayerDead: Found inflicting player.");
+
+                    inflictor.PlayerRef.RegisterKills(1);
+
+                    scoreAmount = ScriptThread.GetVar<int>("scr_score_per_kill");
+
+                    RegisterTeamScore(inflictor.TeamIdx, scoreAmount.Value);
+
+                    if (inflictor.PlayerRef is LocalPlayer)
+                    {
+                        displayMgr.ShowKillPopup(sender.Name, sender.Info.Sess.TeamNum);
+                    }
+                }
+            }
+
+            // award assist points to players that inflicted damage..
+
+            for (int x = 0; x < current.NumPlayers; x++)
+            {
+                if (current.Players[x].TeamIdx == sender.Info.Sess.TeamNum) continue;
+
+                if (sender.Vehicle.Ref.HasBeenDamagedBy(current.Players[x].PlayerRef.Ped) || 
+                    sender.Vehicle.Ref.HasBeenDamagedBy(current.Players[x].PlayerRef.Vehicle))
+                {
+                    current.Players[x].PlayerRef.RegisterKills(1);
+
+                    scoreAmount = ScriptThread.GetVar<int>("scr_score_per_assist");
+
+                    RegisterTeamScore(current.Players[x].TeamIdx, scoreAmount.Value);
+
+                    if (current.Players[x].PlayerRef is LocalPlayer)
+                    {
+                        displayMgr.ShowKillPopup(sender.Name, sender.Info.Sess.TeamNum);
+                    }
+                }
+            }
+        }
+
+        public override void OnUpdate(int gameTime)
+        {
+            for (int i = 0; i < current.NumPlayers; i++)
+            {
+                current.Players[i].Update();
+            }
+
+            base.OnUpdate(gameTime);
         }
 
         /// <summary>
@@ -188,15 +243,23 @@ namespace AirSuperiority.ScriptBase.Logic
         private Player CreatePlayer(int playerIndex, int team, bool bIsLocal)
         {
             var player = bIsLocal ? 
-                new LocalPlayer(BaseThread).InitializeFrom(new PlayerInfo(Game.Player.Name, team, Game.GameTime)) : 
-                new AIPlayer(BaseThread).InitializeFrom(new PlayerInfo(string.Format("aiplayer{0}", playerIndex), team, Game.GameTime));
+                new LocalPlayer().InitializeFrom(new PlayerInfo(Game.Player.Name, team, Game.GameTime)) : 
+                new AIPlayer().InitializeFrom(new PlayerInfo(string.Format("aiplayer{0}", playerIndex), team, Game.GameTime));
+
             player.Create();
+
             return player;
         }
 
         public override void Dispose()
         {
+            for (int i = 0; i < current.NumPlayers; i++)
+            {
+                current.Players[i].PlayerRef?.Dispose();
+            }
+
             rGroups.ForEach(x => World.RemoveRelationshipGroup(x));
+
             base.Dispose();
         }
     }

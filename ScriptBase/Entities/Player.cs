@@ -14,7 +14,7 @@ namespace AirSuperiority.ScriptBase.Entities
     /// Top- most abstraction of a player instance. 
     /// Aggregates all player components including its <see cref="ScriptPed"/> and <see cref="ScriptPlane"/> instance.
     /// </summary>
-    public class Player : ScriptExtension, IPlayer
+    public class Player : ScriptComponent, IPlayer, IDisposable
     {
         /// <summary>
         /// Managed <see cref="ScriptPed"/> associated to this player.
@@ -59,9 +59,6 @@ namespace AirSuperiority.ScriptBase.Entities
         }
 
         public event GamePlayerEventHandler OnDead, OnAlive;
-
-        public Player(ScriptThread thread) : base(thread)
-        { }
 
         public Player InitializeFrom(PlayerInfo info)
         {
@@ -121,7 +118,7 @@ namespace AirSuperiority.ScriptBase.Entities
 
             if (item == null)
             {
-                item = (T)Activator.CreateInstance(typeof(T), BaseThread, this);
+                item = (T)Activator.CreateInstance(typeof(T), this);
 
                 AddExtension(item);
             }
@@ -140,9 +137,9 @@ namespace AirSuperiority.ScriptBase.Entities
         {
             DisposePedAndVehicle();    
 
-            Ped = new ScriptPed(BaseThread, ped);
+            Ped = new ScriptPed(ped);
 
-            Vehicle = new ScriptPlane(BaseThread, vehicle);
+            Vehicle = new ScriptPlane(vehicle);
 
             // Aggregate dead/ alive events into a single event handler...
 
@@ -167,7 +164,7 @@ namespace AirSuperiority.ScriptBase.Entities
                 Function.Call(Hash.START_PARTICLE_FX_NON_LOOPED_AT_COORD, "scr_ojdg4_water_exp", position.X, position.Y, position.Z, 0.0, 0.0, 0.0, 3.0, 0, 0, 0);
             }
 
-            Function.Call(Hash.ADD_EXPLOSION, position.X, position.Y, position.Z, (int)ExplosionType.Valkyrie, 10.0f, true, true, 1.4f);
+            Function.Call(Hash.ADD_EXPLOSION, position.X, position.Y, position.Z, (int)ExplosionType.Train, 10.0f, true, true, 1.4f);
         }
 
         /// <summary>
@@ -220,13 +217,7 @@ namespace AirSuperiority.ScriptBase.Entities
         /// <param name="target"></param>
         public void PersueTarget(Player target)
         {
-         /*   if (Function.Call<bool>(Hash.GET_IS_TASK_ACTIVE, Ped.Ref, 484))
-            {
-                Ped.Ref.Task.ClearAll();
-            }*/
-
             Ped ped = target.Ped.Ref;
-
             Vector3 position = ped.Position;
 
             Function.Call(Hash.TASK_PLANE_MISSION,
@@ -235,9 +226,7 @@ namespace AirSuperiority.ScriptBase.Entities
                 target.Vehicle.Ref,
                 ped.Handle,
                 position.X, position.Y, position.Z,
-                (int) VehicleTaskType.CTaskVehicleAttack, 320f, -1.0f, 200.0, 500, 50);
-
-            Ped.Ref.AlwaysKeepTask = true;
+                (int)VehicleTaskType.CTaskVehicleAttack, 310.0f, -1.0, 30.0, 1000, 50);
 
             ActiveTarget = target;
         }
@@ -285,6 +274,20 @@ namespace AirSuperiority.ScriptBase.Entities
             Extensions.Clear();
         }
 
+        public override void OnUpdate(int gameTime)
+        {
+            base.OnUpdate(gameTime);
+
+            Ped.OnUpdate(gameTime);
+
+            Vehicle.OnUpdate(gameTime);
+
+            for (int i = 0; i < Extensions.Count; i++)
+            {
+                Extensions[i].OnUpdate(gameTime);
+            } 
+        }
+
         /// <summary>
         /// Removes the ped and vehicle from the world.
         /// </summary>
@@ -300,15 +303,13 @@ namespace AirSuperiority.ScriptBase.Entities
             Vehicle?.Remove();
         }
 
-        public override void Dispose()
+        public virtual void Dispose()
         {
             ClearExtensions();
 
             DisposePedAndVehicle();
 
             Remove();
-
-            base.Dispose();
         }
     }
 }

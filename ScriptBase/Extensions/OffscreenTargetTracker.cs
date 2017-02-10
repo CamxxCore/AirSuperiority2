@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Drawing;
 using AirSuperiority.Core;
-using AirSuperiority.ScriptBase.Logic;
 using AirSuperiority.ScriptBase.Helpers;
+using AirSuperiority.ScriptBase.Logic;
 using GTA;
 using GTA.Native;
 using GTA.Math;
@@ -36,12 +32,12 @@ namespace AirSuperiority.ScriptBase.Extensions
             }
         }
 
-        public OffscreenTargetTracker(ScriptThread thread, Player player) : base(thread, player)
+        public OffscreenTargetTracker(Player player) : base(player)
         {
+            sessionMgr = ScriptThread.GetOrAddExtension<SessionManager>();
             Vector3 txdRes = Function.Call<Vector3>(Hash.GET_TEXTURE_RESOLUTION, "basejumping", "Arrow_Pointer");
             var xPos = (int) ((Game.ScreenResolution.Width + txdRes.X) / 2);
             sprite = new Sprite("basejumping", "Arrow_Pointer", new Point(xPos + 50, 40), new Size((int)txdRes.X, (int)txdRes.Y));
-            sessionMgr = thread.Get<SessionManager>();
         }
 
         public override void OnUpdate(int gameTime)
@@ -58,7 +54,7 @@ namespace AirSuperiority.ScriptBase.Extensions
                 {
                     var otherPlayer = sessionMgr.Current.Players[x];
 
-                    if (Player == otherPlayer.EntityRef || Player.Info.Sess.TeamNum == otherPlayer.TeamIdx) continue;
+                    if (Player == otherPlayer.PlayerRef || Player.Info.Sess.TeamNum == otherPlayer.TeamIdx) continue;
 
                     if (Player.Vehicle.Ref.IsOnScreen)
                     {
@@ -66,17 +62,17 @@ namespace AirSuperiority.ScriptBase.Extensions
                         break;
                     }
 
-                    float dist = Player.Position.DistanceTo(otherPlayer.EntityRef.Position);
+                    float dist = Player.Position.DistanceTo(otherPlayer.PlayerRef.Position);
 
-                    if (dist < 1000.0f && Math.Abs(z - otherPlayer.EntityRef.Position.Z) < 10.0f && !otherPlayer.EntityRef.Vehicle.Ref.IsDamaged)
+                    if (dist < 1000.0f && Math.Abs(z - otherPlayer.PlayerRef.Position.Z) < 10.0f && !otherPlayer.PlayerRef.Vehicle.Ref.IsDamaged)
                     {
                         if (target == null || dist < target.Distance)
                         {
-                            target = new TrackerTarget(otherPlayer.EntityRef, dist);
+                            target = new TrackerTarget(otherPlayer.PlayerRef, dist);
 
                             changeTargetTime = Game.GameTime;
 
-                         /*   if (Function.Call<bool>(Hash.IS_PLAYER_TARGETTING_ENTITY, Game.Player.Handle, otherPlayer.EntityRef.Vehicle.Ref))
+                         /*   if (Function.Call<bool>(Hash.IS_PLAYER_TARGETTING_ENTITY, Game.Player.Handle, otherPlayer.PlayerRef.Vehicle.Ref))
                             {
                                 break;
                             }*/

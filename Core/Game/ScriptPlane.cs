@@ -25,7 +25,7 @@ namespace AirSuperiority.Core
 
         private int undrivableTicks = 0;
 
-        public ScriptPlane(ScriptThread thread, Vehicle baseRef) : base(thread, baseRef)
+        public ScriptPlane(Vehicle baseRef) : base(baseRef)
         { }
 
         protected virtual void OnUndrivable(ScriptEntityEventArgs e)

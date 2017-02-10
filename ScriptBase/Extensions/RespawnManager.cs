@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Drawing;
 using AirSuperiority.Core;
 using AirSuperiority.ScriptBase.Entities;
 using AirSuperiority.ScriptBase.Helpers;
 using AirSuperiority.ScriptBase.Logic;
 using AirSuperiority.ScriptBase.Types;
 using GTA;
-using GTA.Math;
 using GTA.Native;
 using Player = AirSuperiority.ScriptBase.Entities.Player;
 
@@ -55,25 +53,18 @@ namespace AirSuperiority.ScriptBase.Extensions
 
         private int outOfBoundsTime = 0;
 
-        public RespawnManager(ScriptThread thread, Player player) : base(thread, player)
+        public RespawnManager(Player player) : base(player)
         {
-            sessionMgr = thread.Get<SessionManager>();
-            levelMgr = thread.Get<LevelManager>();
-            displayMgr = thread.Get<DisplayManager>();
+            sessionMgr = ScriptThread.GetOrAddExtension<SessionManager>();
+            levelMgr = ScriptThread.GetOrAddExtension<LevelManager>();
+            displayMgr = ScriptThread.GetOrAddExtension<DisplayManager>();
         }
 
         public override void OnPlayerAttached(Player player)
         {
             bIsLocal = player is LocalPlayer;
 
-          /*  if (bIsLocal && Player.Ped.Ref.IsDead)
-            {
-                Function.Call(Hash.RESURRECT_PED, Player.Ped.Ref);
-            }*/
-
             player.OnDead += OnPlayerDead;
-
-            Function.Call(Hash._DISABLE_AUTOMATIC_RESPAWN, true);
 
             base.OnPlayerAttached(player);
         }
@@ -85,14 +76,12 @@ namespace AirSuperiority.ScriptBase.Extensions
         /// <param name="e"></param>
         private void OnPlayerDead(Player sender, EventArgs e)
         {
-            if (waitActive) return;
             //ScriptMain.DebugPrint("Extensions.RespawnManager: Starting respawn...");
-
             if (bIsLocal)
             {
-                Function.Call(Hash.IGNORE_NEXT_RESTART, true);
+                //Utility.FadeOutScreen(FadeOutDuration);
 
-                Utility.FadeOutScreen(FadeOutDuration);
+                Function.Call(Hash.IGNORE_NEXT_RESTART, true);
 
                 respawnTriggerTime = Game.GameTime + LocalPlayerWaitTime;
             }
@@ -101,8 +90,6 @@ namespace AirSuperiority.ScriptBase.Extensions
             {
                 respawnTriggerTime = Game.GameTime + AIPlayerWaitTime;
             }
-
-            bOutOfBounds = false;
 
             waitActive = true;
         }
@@ -119,11 +106,25 @@ namespace AirSuperiority.ScriptBase.Extensions
                 if (!bOutOfBounds)
                 {
                     bOutOfBounds = true;
+
                     outOfBoundsTime = gameTime;
 
                     if (bIsLocal)
                     {
                         Function.Call(Hash._START_SCREEN_EFFECT, "SwitchOpenMichaelIn", 0, false);
+                    }
+
+                    else
+                    {
+                        var destination = levelMgr.Level.MapCenter;
+
+                        Function.Call(Hash.TASK_PLANE_MISSION,
+                                       Player.Ped.Ref,
+                                       Player.Vehicle.Ref,
+                                       0,
+                                       0,
+                                       destination.X, destination.Y, destination.Z,
+                                       6, 309.0, 26.0f, 200.0, 1000.0, 20.0);
                     }
                 }
 
@@ -133,11 +134,17 @@ namespace AirSuperiority.ScriptBase.Extensions
                     {
                         if (Game.GameTime - outOfBoundsTime > OutOfBoundsDuration)
                         {
-                            Function.Call(Hash._STOP_SCREEN_EFFECT, "SwitchOpenMichaelIn");
+                            if (bIsLocal)
+                            {
+                                Function.Call(Hash._STOP_SCREEN_EFFECT, "SwitchOpenMichaelIn");
+                            }
 
-                            var spawnPoint = levelMgr.GetSpawnPoint(Player.Info.Sess.TeamNum);
+                            else
+                            {
+                                Player.Vehicle.Ref.Explode();
+                            }
 
-                            Player.Create();
+                            DoRespawn();
                         }
 
                         else
@@ -176,31 +183,37 @@ namespace AirSuperiority.ScriptBase.Extensions
             }
         }
 
+        private void DoRespawn()
+        {
+            var spawnPoint = levelMgr.GetSpawnPoint(Player.Info.Sess.TeamNum);
+
+            if (bIsLocal)
+            {
+                Function.Call(Hash.RESURRECT_PED, Player.Ped.Ref);
+
+                Function.Call(Hash._RESET_LOCALPLAYER_STATE);
+
+                Utility.FadeScreenIn(FadeInDuration);
+            }
+
+            Player.Create();     
+        }
+
         public override void OnUpdate(int gameTime)
         {
-            Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
+            if (Player.Info.Sess.State != PlayerState.Dead)
+            {
+                Function.Call(Hash.SET_FADE_OUT_AFTER_DEATH, false);
 
-            Function.Call(Hash.SET_FADE_IN_AFTER_LOAD, true);
+                Function.Call(Hash.SET_FADE_IN_AFTER_LOAD, true);
 
-            WorldPositionInLevelBoundsFrame(gameTime);
+                WorldPositionInLevelBoundsFrame(gameTime);
+            }
 
             if (waitActive && gameTime > respawnTriggerTime || Player.Info.Sess.State == PlayerState.Inactive)
             {
                 //ScriptMain.DebugPrint("Doing spawn for {0}... Player team index is {1}", Player.Name, Player.Info.Sess.TeamNum);
-
-                var spawnPoint = levelMgr.GetSpawnPoint(Player.Info.Sess.TeamNum);
-
-                if (bIsLocal)
-                {
-                    Function.Call(Hash.RESURRECT_PED, Player.Ped.Ref);
-
-                    Function.Call(Hash._RESET_LOCALPLAYER_STATE);
-                }
-
-                Player.Create();
-
-                if (bIsLocal)
-                    Utility.FadeInScreen(FadeInDuration);
+                DoRespawn();
 
                 waitActive = false;
             }

@@ -57,16 +57,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Core\AssemblyInfo.cs" />
     <Compile Include="Core\Game\IScriptUpdatable.cs" />
     <Compile Include="Core\Game\IScriptExtension.cs" />
+    <Compile Include="Core\Game\ScriptExtension.cs" />
+    <Compile Include="Core\Game\ScriptExtensionEventArgs.cs" />
     <Compile Include="Core\Game\ScriptExtensionPool.cs" />
+    <Compile Include="Core\Game\ScriptVar.cs" />
     <Compile Include="Core\IO\EncryptedFileStream.cs" />
     <Compile Include="Core\IO\IXMLSimpleMetadata.cs" />
     <Compile Include="Core\Logger.cs" />
     <Compile Include="Core\IO\XMLAttributesCollection.cs" />
     <Compile Include="Core\IO\XMLSimpleParser.cs" />
-    <Compile Include="Core\Game\ScriptExtension.cs" />
     <Compile Include="Core\Game\ScriptComponent.cs" />
     <Compile Include="Core\Game\IScriptComponent.cs" />
     <Compile Include="Core\Game\ScriptPed.cs" />
@@ -75,17 +76,48 @@
     <Compile Include="Core\Game\ScriptEntity.cs" />
     <Compile Include="Core\Game\ScriptThread.cs" />
     <Compile Include="Core\IO\XMLSimpleMetadata.cs" />
+    <Compile Include="Core\Game\ScriptVarCollection.cs" />
+    <Compile Include="ScriptBase\CustomNative.cs" />
     <Compile Include="LiveStats\LiveStatsManager.cs" />
     <Compile Include="LiveStats\WCFSingleton.cs" />
+    <Compile Include="NativeUI\BigMessage.cs" />
+    <Compile Include="NativeUI\InstructionalButton.cs" />
+    <Compile Include="NativeUI\MenuPool.cs" />
+    <Compile Include="NativeUI\PauseMenu\TabInteractiveListItem.cs" />
+    <Compile Include="NativeUI\PauseMenu\TabItem.cs" />
+    <Compile Include="NativeUI\PauseMenu\TabItemSimpleList.cs" />
+    <Compile Include="NativeUI\PauseMenu\TabMissionSelectItem.cs" />
+    <Compile Include="NativeUI\PauseMenu\TabSubmenuItem.cs" />
+    <Compile Include="NativeUI\PauseMenu\TabTextItem.cs" />
+    <Compile Include="NativeUI\PauseMenu\TabView.cs" />
+    <Compile Include="NativeUI\PointExtensions.cs" />
+    <Compile Include="NativeUI\Sprite.cs" />
+    <Compile Include="NativeUI\StringMeasurer.cs" />
+    <Compile Include="NativeUI\TimerBars.cs" />
+    <Compile Include="NativeUI\UIMenu.cs" />
+    <Compile Include="NativeUI\UIMenuCheckboxItem.cs" />
+    <Compile Include="NativeUI\UIMenuColoredItem.cs" />
+    <Compile Include="NativeUI\UIMenuItem.cs" />
+    <Compile Include="NativeUI\UIMenuListItem.cs" />
+    <Compile Include="NativeUI\UIResRectangle.cs" />
+    <Compile Include="NativeUI\UIResText.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="ScriptBase\Extensions\AISteeringController.cs" />
     <Compile Include="ScriptBase\Extensions\PlayerHUDManager.cs" />
-    <Compile Include="ScriptBase\Helpers\FighterDisplay.cs" />
+    <Compile Include="ScriptBase\Helpers\SoundPlayerAsync.cs" />
+    <Compile Include="ScriptBase\Helpers\UI\FighterDisplay.cs" />
     <Compile Include="ScriptBase\Extensions\OffscreenTargetTracker.cs" />
-    <Compile Include="ScriptBase\Helpers\Sprite.cs" />
+    <Compile Include="ScriptBase\Helpers\UI\KillPopup.cs" />
+    <Compile Include="ScriptBase\Helpers\UI\Sprite.cs" />
+    <Compile Include="ScriptBase\Logic\SoundManager.cs" />
+    <Compile Include="ScriptBase\Logic\MenuManager.cs" />
     <Compile Include="ScriptBase\Memory\Memory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Game\ScriptEntityEventArgs.cs" />
-    <Compile Include="ScriptBase\Constants.cs" />
     <Compile Include="ScriptBase\Entities\AIPlayer.cs" />
     <Compile Include="ScriptBase\Entities\IPlayer.cs" />
     <Compile Include="ScriptBase\Entities\LocalPlayer.cs" />
@@ -107,7 +139,7 @@
     <Compile Include="ScriptBase\Helpers\ManagedScaleform.cs" />
     <Compile Include="ScriptBase\Helpers\Probability.cs" />
     <Compile Include="ScriptBase\Helpers\Scaleform\Leaderboard.cs" />
-    <Compile Include="ScriptBase\Helpers\TeamScoreboard.cs" />
+    <Compile Include="ScriptBase\Helpers\UI\TeamScoreboard.cs" />
     <Compile Include="ScriptBase\Helpers\Extensions.cs" />
     <Compile Include="ScriptBase\Helpers\GameSound.cs" />
     <Compile Include="ScriptBase\Helpers\Utility.cs" />
@@ -141,12 +173,30 @@
     <Compile Include="ScriptBase\Helpers\Scaleform\RankBar.cs" />
     <Compile Include="ScriptBase\Types\Player\PlayerState.cs" />
     <Compile Include="ScriptBase\Types\Session\SessionInfo.cs" />
-    <Compile Include="ScriptBase\Types\Team\TeamInfo.cs" />
+    <Compile Include="ScriptBase\Types\Team\TeamData.cs" />
     <Compile Include="ScriptBase\Types\Team\TeamColor.cs" />
-    <Compile Include="ScriptBase\Types\Team\TeamStatus.cs" />
+    <Compile Include="ScriptBase\Types\Team\TeamActiveInfo.cs" />
+    <Compile Include="ScriptBase\Types\Team\TeamTextureAsset.cs" />
     <Compile Include="ScriptBase\Types\VehicleTaskType.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\defense_equip.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\flares_equip.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\flares_equip1.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\flares_inactive.wav" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy "$(TargetPath)" "C:\Program Files\Rockstar Games\Grand Theft Auto V\scripts\$(ProjectName).dll"</PostBuildEvent>

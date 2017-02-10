@@ -28,7 +28,7 @@ namespace AirSuperiority.Core
             get { return Ref == Game.Player.Character; }
         }
 
-        public ScriptPed(ScriptThread thread, Ped baseRef) : base(thread, baseRef)
+        public ScriptPed(Ped baseRef) : base(baseRef)
         { }
 
         protected virtual void OnEnterVehicle(ScriptEntityEventArgs e)

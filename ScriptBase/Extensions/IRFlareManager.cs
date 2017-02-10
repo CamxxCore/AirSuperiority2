@@ -2,23 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using AirSuperiority.Core;
+using AirSuperiority.ScriptBase.Entities;
 using AirSuperiority.ScriptBase.Helpers;
+using AirSuperiority.ScriptBase.Logic;
 using GTA.Math;
 using GTA.Native;
 using GTA;
 using Player = AirSuperiority.ScriptBase.Entities.Player;
-using AirSuperiority.ScriptBase.Entities;
 
 namespace AirSuperiority.ScriptBase.Extensions
 {
-    public enum ForceType
-    {
-        Up,
-        Down,
-        Left,
-        Right
-    }
-
     /// <summary>
     /// An extension that adds IR countermeasures for planes.
     /// </summary>
@@ -63,7 +56,7 @@ namespace AirSuperiority.ScriptBase.Extensions
             }
         }
 
-        public IRFlareManager(ScriptThread thread, Player player) : base(thread, player)
+        public IRFlareManager(Player player) : base(player)
         { }
 
         public override void OnPlayerAttached(Player player)
@@ -133,7 +126,7 @@ namespace AirSuperiority.ScriptBase.Extensions
                 }
             }
 
-            if (!AnySequenceActive)
+            if (!AnySequenceActive && Player is LocalPlayer)
             {
                 UI.Notify("IR flares recharging.");
             }
@@ -145,7 +138,14 @@ namespace AirSuperiority.ScriptBase.Extensions
 
             if (bCooldownActive && Game.GameTime - timeSinceLastDrop > MaxDropTime + CooldownTime)
             {
-                UI.Notify("IR flares available.");
+                if (Player is LocalPlayer)
+                {
+                    UI.Notify("IR flares available.");
+
+                    var soundMgr = ScriptThread.GetOrAddExtension<SoundManager>();
+
+                    soundMgr.PlayExternalSound(Properties.Resources.flares_equip);
+                }
 
                 bCooldownActive = false;
             }
@@ -157,7 +157,6 @@ namespace AirSuperiority.ScriptBase.Extensions
 
                 foreach (var projectile in projectileEntities)
                 {
-
                     projectile.ApplyForce(projectile.RightVector * 5);
                 }
             }
@@ -179,6 +178,13 @@ namespace AirSuperiority.ScriptBase.Extensions
                     sequenceList[i].Start();
 
                     sqFlags |= (SequenceFlags)(1 << i);
+                }
+
+                if (Player is LocalPlayer)
+                {
+                    var soundMgr = ScriptThread.GetOrAddExtension<SoundManager>();
+
+                    soundMgr.PlayExternalSound(Properties.Resources.flares_equip1);
                 }
 
                 timeSinceLastDrop = Game.GameTime;
@@ -208,6 +214,14 @@ namespace AirSuperiority.ScriptBase.Extensions
             NotRunning = 0,
             Active = 1
         }
+    }
+
+    public enum ForceType
+    {
+        Up,
+        Down,
+        Left,
+        Right
     }
 
     public sealed class IRFlareSequence

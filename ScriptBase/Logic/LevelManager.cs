@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Linq;
 using AirSuperiority.Core;
+using AirSuperiority.ScriptBase.Helpers;
 using AirSuperiority.ScriptBase.Types;
 using AirSuperiority.ScriptBase.Types.Metadata;
-using AirSuperiority.ScriptBase.Helpers;
 using GTA.Math;
 using GTA.Native;
 
@@ -22,7 +22,7 @@ namespace AirSuperiority.ScriptBase.Logic
         /// Multiplier that affects how close the spawn points are relative to the center of the map.
         /// Lower values make for a larger area.
         /// </summary>
-        private const float SpawnDist = 0.69f;
+        private const float SpawnDist = 0.46f;
 
         /// <summary>
         /// Current level.
@@ -30,13 +30,6 @@ namespace AirSuperiority.ScriptBase.Logic
         public LevelInfo Level { get { return level; } }
 
         private LevelInfo level;
-
-        private SessionManager sessionMgr;
-
-        public LevelManager(ScriptThread thread) : base(thread)
-        {
-            sessionMgr = thread.Get<SessionManager>();
-        }
 
         private void SetupSpawnDist(ref LevelSpawn[] spawns, Vector3 center)
         {

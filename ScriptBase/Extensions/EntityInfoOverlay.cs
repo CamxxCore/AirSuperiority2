@@ -1,6 +1,5 @@
 ﻿using System.Drawing;
 using AirSuperiority.Core;
-using AirSuperiority.ScriptBase.Helpers;
 using AirSuperiority.ScriptBase.Logic;
 using GTA;
 using GTA.Math;
@@ -16,9 +15,18 @@ namespace AirSuperiority.ScriptBase.Extensions
     {
         SessionManager sessionMgr;
 
-        public EntityInfoOverlay(ScriptThread thread, Player player) : base(thread, player)
+        PilotAIController aiController;
+
+        public EntityInfoOverlay(Player player) : base(player)
         {
-            sessionMgr = thread.Get<SessionManager>();
+            sessionMgr = ScriptThread.GetOrAddExtension<SessionManager>();
+        }
+
+        public override void OnPlayerAttached(Player player)
+        {
+            aiController = player.GetExtension<PilotAIController>();
+
+            base.OnPlayerAttached(player);
         }
 
         /// <summary>
@@ -80,11 +88,28 @@ namespace AirSuperiority.ScriptBase.Extensions
           //  var color = sessionMgr.GetTeamByIndex(Player.Info.Sess.TeamNum).TeamColor;
 
             DrawSquare(new Point(0, -32), Color.Red,
-                string.Format("{0} dist: {1} team: {2}", Player.Name, Player.Position.DistanceTo(Game.Player.Character.Position), Player.Info.Sess.TeamNum), scale * 0.37f,
+                string.Format("{0} dist: {1} team: {2} state: {3}", Player.Name, Player.Position.DistanceTo(Game.Player.Character.Position), Player.Info.Sess.TeamNum, aiController.State.Status.ToString()), scale * 0.37f,
                 dist > 0.42f,
                 dist > 0.58f);
 
             Function.Call(Hash.CLEAR_DRAW_ORIGIN);
+
+            if (Player.ActiveTarget != null )
+            {
+                var tp = Player.ActiveTarget.Position;
+
+                var direction = tp - pos;
+
+                Vector3 horz = Vector3.Cross(direction, new Vector3(0, 0, 1.0f));
+
+                Vector3 posA = tp + horz * 0.0034f;
+
+                Vector3 posB = tp + -horz * 0.0034f;
+
+                Function.Call(Hash.DRAW_LINE, pos.X, pos.Y, pos.Z, tp.X, tp.Y, tp.Z, 255, 0, 0, 255);
+
+                Function.Call(Hash.DRAW_LINE, posA.X, posA.Y, posA.Z, posB.X, posB.Y, posB.Z, 0, 255, 0, 255);
+            }
 
             base.OnUpdate(gameTime);
         }

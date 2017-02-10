@@ -1,6 +1,7 @@
-﻿using GTA;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using GTA;
 
 namespace AirSuperiority.Core
 {
@@ -12,25 +13,85 @@ namespace AirSuperiority.Core
         /// <summary>
         /// Script extension pool.
         /// </summary>
-        public ScriptExtensionPool Extensions { get; }
+        private static ScriptExtensionPool extensions = new ScriptExtensionPool();
+
+        /// <summary>
+        /// Script vars.
+        /// </summary>
+        private static ScriptVarCollection vars = new ScriptVarCollection();
 
         public ScriptThread()
         {
-            Tick += (s,e) => OnUpdate(Game.GameTime);
-            Extensions = new ScriptExtensionPool();
+            Tick += (s,e) => OnUpdate(Game.GameTime);;
+        }
+
+        /// <summary>
+        /// Get a script var attached to this thread.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static ScriptVar<T> GetVar<T>(string name)
+        {
+            return vars.Get<T>(name);
+        }
+
+        /// <summary>
+        /// Set the value of a script var attached to this thread.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static bool SetVar<T>(string name, T value)
+        {
+            ScriptVar<T> var = vars.Get<T>(name);
+
+            if (var != null && !var.ReadOnly)
+            {
+                var.Value = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Register a new script var and add it to the collection.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name">The name of the var</param>
+        /// <param name="value">The initial value</param>
+        /// <param name="defaultValue">The default (reset) value</param>
+        public static void RegisterVar<T>(string name, T initialValue)
+        {
+            vars.Add(name, initialValue, initialValue);
         }
 
         /// <summary>
         /// Adds a script extension to this thread.
         /// </summary>
         /// <param name="extension"></param>
-        public void AddExtension(ScriptExtension extension)
+        public static void AddExtension(ScriptExtension extension) 
         {
-            if (!Extensions.Contains(extension))
+            if (!extensions.Contains(extension))
             {
-                extension.BaseThread = this;
+                extensions.Add(extension);
+            }
+        }
 
-                Extensions.Add(extension);
+        /// <summary>
+        /// Adds a script extension to this thread.
+        /// </summary>
+        /// <param name="extension"></param>
+        public static void AddExtension<T>() where T : ScriptExtension, new()
+        {
+            T extension = extensions.Get<T>();
+
+            if (extension == null)
+            {
+                extension = new T();
+
+                extensions.Add(extension);
             }
         }
 
@@ -38,11 +99,29 @@ namespace AirSuperiority.Core
         /// Get a script extension from the underlying pool by its type.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="identifier"></param>
         /// <returns></returns>
-        public T Get<T>() where T : ScriptExtension
+        protected static T GetExtension<T>() where T : ScriptExtension
         {
-            return Extensions.Get<T>();
+            return extensions.Get<T>();
+        }
+
+        /// <summary>
+        /// Get an extension, or create it if it doesn't exist.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static T GetOrAddExtension<T>() where T : ScriptExtension, new()
+        {
+            var item = GetExtension<T>();
+
+            if (item == null)
+            {
+                item = new T();
+
+                AddExtension(item);
+            }
+
+            return item;
         }
 
         /// <summary>
@@ -50,9 +129,9 @@ namespace AirSuperiority.Core
         /// </summary>
         public virtual void OnUpdate(int gameTime)
         {
-            for (int i = 0; i < Extensions.Count; i++)
+            for (int i = 0; i < extensions.Count; i++)
             {
-                Extensions[i].OnUpdate(gameTime);
+                extensions[i].OnUpdate(gameTime);
             }
         }
 
@@ -64,9 +143,9 @@ namespace AirSuperiority.Core
         {
             Tick -= (s, e) => OnUpdate(Game.GameTime);
 
-            for (int i = 0; i < Extensions.Count; i++)
+            for (int i = 0; i < extensions.Count; i++)
             {
-                Extensions[i].Dispose();
+                extensions[i].Dispose();
             }
 
             base.Dispose(A_0);

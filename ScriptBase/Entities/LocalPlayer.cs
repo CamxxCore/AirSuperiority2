@@ -11,20 +11,19 @@ namespace AirSuperiority.ScriptBase.Entities
 {
     public class LocalPlayer : Player
     {
-        private bool fadingScreen = false;
-
-        public LocalPlayer(ScriptThread thread) : base(thread)
-        { }
-
         public override void Create()
         {
             base.Create();
 
-            var levelMgr = BaseThread.Get<LevelManager>();
+            var levelMgr = ScriptThread.GetOrAddExtension<LevelManager>();
+
+            var sessMgr = ScriptThread.GetOrAddExtension<SessionManager>();
 
             LevelSpawn spawnPoint = levelMgr.GetSpawnPoint(Info.Sess.TeamNum);
 
-            Vector3 position = Utility.EnsureValidSpawnPos(spawnPoint.Position);
+            // spawn above to avoid collision with teammates.
+
+            Vector3 position = Utility.EnsureValidSpawnPos(spawnPoint.Position + new Vector3(0, 0, 2.0f));
 
             Model model = new Model(VehicleHash.Lazer);
 
@@ -35,16 +34,21 @@ namespace AirSuperiority.ScriptBase.Entities
 
             vehicle.LodDistance = 2000;
             vehicle.EngineRunning = true;
+            vehicle.BodyHealth = 1000;
 
-            vehicle.MaxSpeed = 320.0f;
+            vehicle.MaxSpeed = 280.0f;
 
             Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, vehicle, true);
 
-            Ped player = Game.Player.Character;
+            Ped ped = Game.Player.Character;
 
-            player.SetIntoVehicle(vehicle, VehicleSeat.Driver);
+            TeamData team = sessMgr.GetTeamByIndex(Info.Sess.TeamNum);
 
-            Manage(player, vehicle);       
+            ped.RelationshipGroup = team.RelationshipGroup;
+
+            ped.SetIntoVehicle(vehicle, VehicleSeat.Driver);
+
+            Manage(ped, vehicle);       
         }
 
         /// <summary>
@@ -53,7 +57,6 @@ namespace AirSuperiority.ScriptBase.Entities
         public override void SetupExtensions()
         {
             base.SetupExtensions();
-
             GetOrCreateExtension<SpawnVelocityBooster>();
             GetOrCreateExtension<SpawnLerpingCamera>();
             GetOrCreateExtension<PlayerHUDManager>();
@@ -62,25 +65,21 @@ namespace AirSuperiority.ScriptBase.Entities
 
         public override void OnUpdate(int gameTime)
         {
-            if (Game.IsControlJustPressed(0, Control.ScriptLB) || Game.IsControlJustPressed(0, (Control)48))
+            if (!ScriptThread.GetVar<bool>("scr_hardcore").Value)
             {
-                var extinguisher = GetExtension<EngineExtinguisher>();
+                if (Game.IsControlJustPressed(0, Control.ScriptLB) || Game.IsControlJustPressed(0, (Control)48))
+                {
+                    var extinguisher = GetExtension<EngineExtinguisher>();
 
-                extinguisher.Start();
-            }
+                    extinguisher.Start();
+                }
 
-            else if (Game.IsControlJustPressed(0, Control.ScriptRB) || Game.IsControlJustPressed(0, (Control)337))
-            {
-                var flareMgr = GetExtension<IRFlareManager>();
+                else if (Game.IsControlJustPressed(0, Control.ScriptRB) || Game.IsControlJustPressed(0, (Control)337))
+                {
+                    var flareMgr = GetExtension<IRFlareManager>();
 
-                flareMgr.Start();
-            }
-
-            if (Info.Sess.State == PlayerState.Playing && fadingScreen)
-            {
-                Utility.FadeInScreen(1000);
-
-                fadingScreen = false;
+                    flareMgr.Start();
+                }
             }
 
             base.OnUpdate(gameTime);

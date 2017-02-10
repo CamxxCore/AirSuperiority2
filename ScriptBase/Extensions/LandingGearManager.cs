@@ -15,7 +15,7 @@ namespace AirSuperiority.ScriptBase.Extensions
 
         private bool waitActive = false;
 
-        public LandingGearManager(ScriptThread thread, Player player) : base(thread, player)
+        public LandingGearManager(Player player) : base(player)
         { }
 
         public override void OnPlayerAttached(Player player)

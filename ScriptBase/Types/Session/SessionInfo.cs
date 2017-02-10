@@ -8,19 +8,19 @@ namespace AirSuperiority.ScriptBase.Types
     {
         public int TeamIdx { get; set; }
 
-        public Player EntityRef { get; set; }
+        public Player PlayerRef { get; set; }
 
-        public SessionPlayer(int teamIdx, Entities.Player entityRef)
+        public SessionPlayer(int teamIdx, Player player)
         {
             TeamIdx = teamIdx;
-            EntityRef = entityRef;
+            PlayerRef = player;
         }
 
         public void Update()
         {
-            if (EntityRef != null)
+            if (PlayerRef != null)
             {
-                EntityRef.OnUpdate(Game.GameTime);
+                PlayerRef.OnUpdate(Game.GameTime);
             }
         }
     }
@@ -45,9 +45,9 @@ namespace AirSuperiority.ScriptBase.Types
             }
         }
 
-        public SessionPlayer AddPlayer(int playerIndex, int teamIdx, Player entityRef)
+        public SessionPlayer AddPlayer(int playerIndex, int teamIdx, Player PlayerRef)
         {
-            SessionPlayer player = new SessionPlayer(teamIdx, entityRef);
+            SessionPlayer player = new SessionPlayer(teamIdx, PlayerRef);
             Players[playerIndex] = player;
             return player;
         }

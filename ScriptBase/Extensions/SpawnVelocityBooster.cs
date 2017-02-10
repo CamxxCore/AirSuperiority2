@@ -1,5 +1,4 @@
-﻿using AirSuperiority.Core;
-using GTA;
+﻿using GTA;
 using Player = AirSuperiority.ScriptBase.Entities.Player;
 
 namespace AirSuperiority.ScriptBase.Extensions
@@ -15,7 +14,7 @@ namespace AirSuperiority.ScriptBase.Extensions
 
         private bool boostActive = false;
 
-        public SpawnVelocityBooster(ScriptThread thread, Player player) : base(thread, player)
+        public SpawnVelocityBooster(Player player) : base(player)
         { }
 
         public override void OnPlayerAttached(Player player)
@@ -48,7 +47,8 @@ namespace AirSuperiority.ScriptBase.Extensions
 
                 else
                 {
-                    Player.Vehicle.Ref.ApplyForce(Player.Vehicle.Ref.ForwardVector * 1.024f);
+                    Player.Vehicle.Ref.ApplyForce(Player.Vehicle.Ref.ForwardVector * 0.524f);
+                    Player.Vehicle.Ref.ApplyForce((Player.Vehicle.Ref.ForwardVector + Player.Vehicle.Ref.UpVector) * 0.224f);
                 }
             }
 

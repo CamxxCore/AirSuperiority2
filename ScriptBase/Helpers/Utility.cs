@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Linq;
 using GTA;
 using GTA.Native;
@@ -9,6 +10,14 @@ namespace AirSuperiority.ScriptBase.Helpers
 {
     public static class Utility
     {
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        public static bool IsForeground()
+        {
+            return System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle == GetForegroundWindow();
+        }
+
         public static float GetRandomBetween(float a, float b)
         {
             return a > b ? Function.Call<float>(Hash.GET_RANDOM_FLOAT_IN_RANGE, b, a) :
@@ -39,6 +48,11 @@ namespace AirSuperiority.ScriptBase.Helpers
         public static float HeadingTo(this Vector3 start, Vector3 end)
         {
             return Function.Call<float>(Hash.GET_HEADING_FROM_VECTOR_2D, end.X - start.X, end.Y - start.Y);
+        }
+
+        public static float DistanceTo(this float f, float value)
+        {
+            return Math.Abs(f - value);
         }
 
         public static Vector3 RotationToDirection(Vector3 Rotation)
@@ -114,21 +128,21 @@ namespace AirSuperiority.ScriptBase.Helpers
 
 
         /// <summary>
-        /// Fade out screen
+        /// Fade out screen (Since this function was removed with newer versions of Scripthookvdotnet)
         /// </summary>
         /// <param name="wait">The time to sleep while fading.</param>
         /// <param name="duration">The duration of the fade effect.</param>
-        public static void FadeOutScreen(int duration)
+        public static void FadeScreenOut(int duration)
         {
             Function.Call(Hash.DO_SCREEN_FADE_OUT, duration);
         }
 
         /// <summary>
-        /// Fade in screen
+        /// Fade in screen (Since this function was removed with newer versions of Scripthookvdotnet)
         /// </summary>
         /// <param name="wait">The time to sleep while fading.</param>
         /// <param name="duration">The duration of the fade effect.</param>
-        public static void FadeInScreen(int duration)
+        public static void FadeScreenIn(int duration)
         {
             Function.Call(Hash.DO_SCREEN_FADE_IN, duration);
         }
@@ -185,10 +199,9 @@ namespace AirSuperiority.ScriptBase.Helpers
         {
             for (int i = 0; i < 20; i++)
             {
-
                 var pos = position.Around(20 * i);
 
-                if (!Function.Call<bool>(Hash.IS_POINT_OBSCURED_BY_A_MISSION_ENTITY, pos.X, pos.Y, pos.Z, 15f, 15f, 15f, 0))
+                if (!Function.Call<bool>(Hash.IS_POSITION_OCCUPIED, pos.X, pos.Y, pos.Z, 10.0f, 0, 1, 0, 0, 0, 0, 0))
                 {
                     return pos;
                 }

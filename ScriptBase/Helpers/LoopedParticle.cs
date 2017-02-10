@@ -31,7 +31,7 @@ namespace AirSuperiority.ScriptBase.Helpers
         /// <summary>
         /// Set the particle FX colour.
         /// </summary>
-        public Color Colour { set { Function.Call(Hash.SET_PARTICLE_FX_LOOPED_COLOUR, Handle, value.R, value.G, value.B, 0); } }
+        public Color Colour { set { Function.Call(Hash.SET_PARTICLE_FX_LOOPED_COLOUR, Handle, (float) value.R, (float) value.G, (float) value.B, 0); } }
 
         public LoopedParticle(string assetName, string fxName)
         {
